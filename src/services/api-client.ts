@@ -187,6 +187,17 @@ export class ApiClient {
   }
 
   // Discord integration endpoints
+  async logCheckin(data: {
+    discord_id: string;
+    username: string;
+    avatar_url?: string;
+    status: 'went' | 'missed';
+    photo_url?: string;
+    date: string;
+  }): Promise<DiscordEmbed> {
+    return this.apiCall<DiscordEmbed>('POST', '/discord/checkin', data);
+  }
+
   async getCheckInEmbed(data: {
     user_id: string;
     checkin_id: string;
@@ -196,6 +207,23 @@ export class ApiClient {
 
   async getProfileEmbed(discordId: string): Promise<DiscordEmbed> {
     return this.apiCall<DiscordEmbed>('GET', `/discord/profile-embed?discord_id=${discordId}`);
+  }
+
+  // Discord registration endpoints
+  async getRegisterEmbed(data: {
+    discord_id: string;
+    username: string;
+    avatar_url?: string;
+  }): Promise<DiscordEmbed> {
+    return this.apiCall<DiscordEmbed>('POST', '/discord/register-embed', data);
+  }
+
+  async registerUser(data: {
+    discord_id: string;
+    username: string;
+    avatar_url?: string;
+  }): Promise<{ success: boolean; user_id: string; message: string }> {
+    return this.apiCall<{ success: boolean; user_id: string; message: string }>('POST', '/discord/register', data);
   }
 
   async getCheerEmbed(data: {

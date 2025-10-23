@@ -32,31 +32,121 @@ export class CheckinHandler implements CommandHandler {
         discord_message_id: interaction.id // Use interaction ID as message ID
       };
 
-      // Show registration required message
-      const embed = new EmbedBuilder()
-        .setColor(0xffa500)
-        .setTitle('🔐 Authentication Required')
-        .setDescription(
-          `**User:** <@${userId}>\n\n` +
-          `You need to register with WaddleTracker before you can log check-ins.\n` +
-          `Please visit the [WaddleTracker website](https://waddletracker.com) to create an account and link your Discord profile.`
-        )
-        .addFields(
-          {
-            name: '🔗 How to Get Started',
-            value: '1. Visit [waddletracker.com](https://waddletracker.com)\n2. Sign up with Discord\n3. Link your Discord account\n4. Come back and use `/checkin`!',
-            inline: false
-          },
-          {
-            name: '💡 What You\'ll Get',
-            value: '• Track your gym sessions\n• Build streaks and achievements\n• Get motivation from the community\n• View your progress analytics',
-            inline: false
-          }
-        )
-        .setThumbnail(interaction.user.displayAvatarURL())
-        .setTimestamp();
+      try {
+        // Try to log check-in first
+        const embedData = await apiClient.logCheckin({
+          discord_id: userId,
+          username: interaction.user.username,
+          avatar_url: interaction.user.displayAvatarURL(),
+          status,
+          photo_url: photoUrl || undefined,
+          date: now
+        });
 
-      await interaction.editReply({ embeds: [embed] });
+        const embed = new EmbedBuilder()
+          .setColor(embedData.color || 0x00ff00)
+          .setTitle(embedData.title || '🏋️ Check-in Logged!')
+          .setDescription(embedData.description || `**User:** <@${userId}>`)
+          .setThumbnail(interaction.user.displayAvatarURL())
+          .setTimestamp();
+
+        // Add fields if they exist
+        if (embedData.fields) {
+          embed.addFields(embedData.fields);
+        }
+
+        // Add footer if it exists
+        if (embedData.footer) {
+          embed.setFooter(embedData.footer);
+        }
+
+        await interaction.editReply({ embeds: [embed] });
+
+      } catch (apiError) {
+        // If user doesn't exist, show registration embed with button
+        try {
+          const registerEmbedData = await apiClient.getRegisterEmbed({
+            discord_id: userId,
+            username: interaction.user.username,
+            avatar_url: interaction.user.displayAvatarURL()
+          });
+
+          const embed = new EmbedBuilder()
+            .setColor(registerEmbedData.color || 0xffa500)
+            .setTitle(registerEmbedData.title || '🔐 Registration Required')
+            .setDescription(registerEmbedData.description || `**User:** <@${userId}>\n\nYou need to register with WaddleTracker before you can log check-ins.`)
+            .setThumbnail(interaction.user.displayAvatarURL())
+            .setTimestamp();
+
+          // Add fields if they exist
+          if (registerEmbedData.fields) {
+            embed.addFields(registerEmbedData.fields);
+          }
+
+          // Add footer if it exists
+          if (registerEmbedData.footer) {
+            embed.setFooter(registerEmbedData.footer);
+          }
+
+          // Add registration buttons
+          const row = new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+              new ButtonBuilder()
+                .setCustomId(`register_${userId}`)
+                .setLabel('Register Now!')
+                .setStyle(ButtonStyle.Success)
+                .setEmoji('🚀'),
+              new ButtonBuilder()
+                .setCustomId(`learn_more_${userId}`)
+                .setLabel('Learn More')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('ℹ️')
+            );
+
+          await interaction.editReply({ 
+            embeds: [embed], 
+            components: [row] 
+          });
+
+        } catch (registerError) {
+          // Fallback if registration embed fails
+          const embed = new EmbedBuilder()
+            .setColor(0xffa500)
+            .setTitle('🔐 Registration Required')
+            .setDescription(
+              `**User:** <@${userId}>\n\n` +
+              `You need to register with WaddleTracker before you can log check-ins.\n` +
+              `Click the "Register Now!" button below to get started!`
+            )
+            .addFields({
+              name: '🔗 What You\'ll Get',
+              value: '• Track your gym sessions\n• Build streaks and achievements\n• Get motivation from the community\n• View your progress analytics',
+              inline: false
+            })
+            .setThumbnail(interaction.user.displayAvatarURL())
+            .setTimestamp();
+
+          // Add registration buttons
+          const row = new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+              new ButtonBuilder()
+                .setCustomId(`register_${userId}`)
+                .setLabel('Register Now!')
+                .setStyle(ButtonStyle.Success)
+                .setEmoji('🚀'),
+              new ButtonBuilder()
+                .setCustomId(`learn_more_${userId}`)
+                .setLabel('Learn More')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('ℹ️')
+            );
+
+          await interaction.editReply({ 
+            embeds: [embed], 
+            components: [row] 
+          });
+        }
+      }
 
     } catch (error) {
       await handleApiError(interaction, error);

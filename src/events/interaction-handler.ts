@@ -1,7 +1,16 @@
-import { Interaction, ButtonInteraction, ModalSubmitInteraction } from 'discord.js';
+import { 
+  Interaction, 
+  ButtonInteraction, 
+  ModalSubmitInteraction,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle
+} from 'discord.js';
 import { commandHandlers } from '../commands/registry';
 import logger from '../utils/logger';
 import { createErrorEmbed } from '../commands/handlers';
+import { apiClient } from '../services/api-client';
 
 export class InteractionHandler {
   async handleInteraction(interaction: Interaction): Promise<void> {
@@ -63,6 +72,10 @@ export class InteractionHandler {
       await this.handleScheduleDeleteCancel(interaction);
     } else if (customId.startsWith('page_')) {
       await this.handlePagination(interaction);
+    } else if (customId.startsWith('register_')) {
+      await this.handleRegistration(interaction);
+    } else if (customId.startsWith('learn_more_')) {
+      await this.handleLearnMore(interaction);
     } else {
       logger.warn(`Unknown button interaction: ${customId}`);
     }
@@ -178,6 +191,126 @@ export class InteractionHandler {
     await interaction.editReply({
       embeds: [embed],
       components: []
+    });
+  }
+
+  private async handleRegistration(interaction: ButtonInteraction): Promise<void> {
+    try {
+      await interaction.deferUpdate();
+
+      const customId = interaction.customId;
+      const userId = customId.replace('register_', '');
+
+      // Register the user
+      const result = await apiClient.registerUser({
+        discord_id: userId,
+        username: interaction.user.username,
+        avatar_url: interaction.user.displayAvatarURL()
+      });
+
+      if (result.success) {
+        const embed = new EmbedBuilder()
+          .setColor(0x00ff00)
+          .setTitle('🎉 Welcome to WaddleTracker!')
+          .setDescription(
+            `**User:** <@${userId}>\n\n` +
+            `Congratulations! You've been successfully registered with WaddleTracker.\n` +
+            `You can now use all bot features!`
+          )
+          .addFields({
+            name: '🚀 What\'s Next?',
+            value: '• Use `/checkin` to log your gym sessions\n• Try `/profile` to see your stats\n• Use `/streak` to track your progress\n• Send `/cheer` to motivate friends!',
+            inline: false
+          })
+          .setThumbnail(interaction.user.displayAvatarURL())
+          .setTimestamp();
+
+        await interaction.editReply({
+          embeds: [embed],
+          components: []
+        });
+      } else {
+        const embed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle('❌ Registration Failed')
+          .setDescription(
+            `**User:** <@${userId}>\n\n` +
+            `Registration failed: ${result.message}\n` +
+            `Please try again or contact support if the issue persists.`
+          )
+          .setTimestamp();
+
+        await interaction.editReply({
+          embeds: [embed],
+          components: []
+        });
+      }
+
+    } catch (error) {
+      logger.error('Registration error:', error);
+      
+      const embed = new EmbedBuilder()
+        .setColor(0xff0000)
+        .setTitle('❌ Registration Error')
+        .setDescription(
+          `An error occurred during registration. Please try again later.\n` +
+          `If the problem persists, contact support.`
+        )
+        .setTimestamp();
+
+      await interaction.editReply({
+        embeds: [embed],
+        components: []
+      });
+    }
+  }
+
+  private async handleLearnMore(interaction: ButtonInteraction): Promise<void> {
+    await interaction.deferUpdate();
+    
+    const customId = interaction.customId;
+    const userId = customId.replace('learn_more_', '');
+
+    const embed = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle('ℹ️ About WaddleTracker')
+      .setDescription(
+        `**User:** <@${userId}>\n\n` +
+        `WaddleTracker is a fitness accountability platform that helps you stay motivated and track your gym progress.`
+      )
+      .addFields(
+        {
+          name: '🏋️ Features',
+          value: '• Log gym check-ins with photos\n• Track streaks and achievements\n• Get motivation from the community\n• View detailed analytics',
+          inline: false
+        },
+        {
+          name: '🎯 Benefits',
+          value: '• Stay accountable to your fitness goals\n• Build consistent workout habits\n• Connect with like-minded people\n• Celebrate your progress',
+          inline: false
+        },
+        {
+          name: '🚀 Ready to Start?',
+          value: 'Click "Register Now!" to join the WaddleTracker community!',
+          inline: false
+        }
+      )
+      .setThumbnail(interaction.user.displayAvatarURL())
+      .setTimestamp();
+
+    // Add registration buttons
+    const row = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId(`register_${userId}`)
+          .setLabel('Register Now!')
+          .setStyle(ButtonStyle.Success)
+          .setEmoji('🚀')
+      );
+
+    await interaction.editReply({
+      embeds: [embed],
+      components: [row]
     });
   }
 

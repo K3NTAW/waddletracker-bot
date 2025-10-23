@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { CommandHandler, createErrorEmbed, handleApiError, getTargetUserId } from './index';
 import { apiClient } from '../../services/api-client';
 
@@ -34,24 +34,89 @@ export class ProfileHandler implements CommandHandler {
         await interaction.editReply({ embeds: [embed] });
 
       } catch (apiError) {
-        // If user doesn't exist in the system, show registration prompt
-        const embed = new EmbedBuilder()
-          .setColor(0xffa500)
-          .setTitle('👤 User Not Found')
-          .setDescription(
-            `**User:** <@${targetUserId}>\n\n` +
-            `This user hasn't registered with WaddleTracker yet.\n` +
-            `They need to visit the [WaddleTracker website](https://waddletracker.com) to create an account and link their Discord profile.`
-          )
-          .addFields({
-            name: '🔗 How to Register',
-            value: '1. Visit [waddletracker.com](https://waddletracker.com)\n2. Sign up with Discord\n3. Link your Discord account\n4. Start tracking your fitness journey!',
-            inline: false
-          })
-          .setThumbnail(interaction.user.displayAvatarURL())
-          .setTimestamp();
+        // If user doesn't exist, show registration embed with button
+        try {
+          const registerEmbedData = await apiClient.getRegisterEmbed({
+            discord_id: targetUserId,
+            username: interaction.user.username,
+            avatar_url: interaction.user.displayAvatarURL()
+          });
 
-        await interaction.editReply({ embeds: [embed] });
+          const embed = new EmbedBuilder()
+            .setColor(registerEmbedData.color || 0xffa500)
+            .setTitle(registerEmbedData.title || '👤 Registration Required')
+            .setDescription(registerEmbedData.description || `**User:** <@${targetUserId}>\n\nThis user needs to register with WaddleTracker to use the bot features.`)
+            .setThumbnail(interaction.user.displayAvatarURL())
+            .setTimestamp();
+
+          // Add fields if they exist
+          if (registerEmbedData.fields) {
+            embed.addFields(registerEmbedData.fields);
+          }
+
+          // Add footer if it exists
+          if (registerEmbedData.footer) {
+            embed.setFooter(registerEmbedData.footer);
+          }
+
+          // Add registration buttons
+          const row = new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+              new ButtonBuilder()
+                .setCustomId(`register_${targetUserId}`)
+                .setLabel('Register Now!')
+                .setStyle(ButtonStyle.Success)
+                .setEmoji('🚀'),
+              new ButtonBuilder()
+                .setCustomId(`learn_more_${targetUserId}`)
+                .setLabel('Learn More')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('ℹ️')
+            );
+
+          await interaction.editReply({ 
+            embeds: [embed], 
+            components: [row] 
+          });
+
+        } catch (registerError) {
+          // Fallback if registration embed fails
+          const embed = new EmbedBuilder()
+            .setColor(0xffa500)
+            .setTitle('👤 Registration Required')
+            .setDescription(
+              `**User:** <@${targetUserId}>\n\n` +
+              `This user needs to register with WaddleTracker to use the bot features.\n` +
+              `Click the "Register Now!" button below to get started!`
+            )
+            .addFields({
+              name: '🔗 What You\'ll Get',
+              value: '• Track your gym sessions\n• Build streaks and achievements\n• Get motivation from the community\n• View your progress analytics',
+              inline: false
+            })
+            .setThumbnail(interaction.user.displayAvatarURL())
+            .setTimestamp();
+
+          // Add registration buttons
+          const row = new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+              new ButtonBuilder()
+                .setCustomId(`register_${targetUserId}`)
+                .setLabel('Register Now!')
+                .setStyle(ButtonStyle.Success)
+                .setEmoji('🚀'),
+              new ButtonBuilder()
+                .setCustomId(`learn_more_${targetUserId}`)
+                .setLabel('Learn More')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('ℹ️')
+            );
+
+          await interaction.editReply({ 
+            embeds: [embed], 
+            components: [row] 
+          });
+        }
       }
 
     } catch (error) {
