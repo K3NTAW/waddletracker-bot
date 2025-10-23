@@ -10,39 +10,49 @@ export class ProfileHandler implements CommandHandler {
       const targetUserId = getTargetUserId(interaction);
       const isSelf = targetUserId === interaction.user.id;
 
-      // For now, we'll create a mock profile since we don't have user data
-      // In a real implementation, you'd call apiClient.getProfileEmbed(targetUserId)
-      const embed = new EmbedBuilder()
-        .setColor(0x0099ff)
-        .setTitle(`🏋️ ${isSelf ? 'Your' : 'User'} Profile`)
-        .setDescription(
-          `**User:** <@${targetUserId}>\n` +
-          `**Current Streak:** 5 days 🔥\n` +
-          `**Longest Streak:** 12 days 🏆\n` +
-          `**Total Check-ins:** 45\n` +
-          `**Member Since:** ${new Date().toLocaleDateString()}`
-        )
-        .addFields(
-          {
-            name: '📊 Recent Activity',
-            value: '• Went to gym - 2 hours ago\n• Missed workout - Yesterday\n• Went to gym - 2 days ago',
-            inline: false
-          },
-          {
-            name: '🏆 Achievements',
-            value: '• 7-day streak 🔥\n• 30 check-ins 🎯\n• Early bird ⏰',
-            inline: false
-          }
-        )
-        .setThumbnail(interaction.user.displayAvatarURL())
-        .setTimestamp();
+      try {
+        // Get profile embed from API
+        const embedData = await apiClient.getProfileEmbed(targetUserId);
+        
+        const embed = new EmbedBuilder()
+          .setColor(embedData.color || 0x0099ff)
+          .setTitle(embedData.title || `🏋️ ${isSelf ? 'Your' : 'User'} Profile`)
+          .setDescription(embedData.description || `**User:** <@${targetUserId}>`)
+          .setThumbnail(interaction.user.displayAvatarURL())
+          .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+        // Add fields if they exist
+        if (embedData.fields) {
+          embed.addFields(embedData.fields);
+        }
 
-      // TODO: In a real implementation, you would:
-      // 1. Call apiClient.getProfileEmbed(targetUserId)
-      // 2. Use the returned embed data
-      // 3. Handle cases where user doesn't exist in the system
+        // Add footer if it exists
+        if (embedData.footer) {
+          embed.setFooter(embedData.footer);
+        }
+
+        await interaction.editReply({ embeds: [embed] });
+
+      } catch (apiError) {
+        // If user doesn't exist in the system, show registration prompt
+        const embed = new EmbedBuilder()
+          .setColor(0xffa500)
+          .setTitle('👤 User Not Found')
+          .setDescription(
+            `**User:** <@${targetUserId}>\n\n` +
+            `This user hasn't registered with WaddleTracker yet.\n` +
+            `They need to visit the [WaddleTracker website](https://waddletracker.com) to create an account and link their Discord profile.`
+          )
+          .addFields({
+            name: '🔗 How to Register',
+            value: '1. Visit [waddletracker.com](https://waddletracker.com)\n2. Sign up with Discord\n3. Link your Discord account\n4. Start tracking your fitness journey!',
+            inline: false
+          })
+          .setThumbnail(interaction.user.displayAvatarURL())
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+      }
 
     } catch (error) {
       await handleApiError(interaction, error);

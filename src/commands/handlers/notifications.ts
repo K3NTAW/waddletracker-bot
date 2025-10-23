@@ -16,94 +16,73 @@ export class NotificationsHandler implements CommandHandler {
         const page = interaction.options.getInteger('page') || 1;
         const limit = 10;
 
-        // For now, we'll create mock notifications
-        // In a real implementation, you'd call apiClient.getUserNotifications(userId, { page, limit, type, unread_only })
-        const mockNotifications = [
-          {
-            id: '1',
-            type: 'cheer',
-            title: 'Someone cheered for you!',
-            message: 'Great job on your 5-day streak! 💪',
-            read: false,
-            created_at: new Date(Date.now() - 3600000).toISOString()
-          },
-          {
-            id: '2',
-            type: 'achievement',
-            title: 'Achievement Unlocked!',
-            message: 'You\'ve reached a 7-day streak! 🔥',
-            read: true,
-            created_at: new Date(Date.now() - 86400000).toISOString()
-          },
-          {
-            id: '3',
-            type: 'reminder',
-            title: 'Workout Reminder',
-            message: 'Time for your scheduled workout!',
-            read: false,
-            created_at: new Date(Date.now() - 7200000).toISOString()
+        try {
+          // Get real notifications from API
+          const notificationsData = await apiClient.getUserNotifications(userId, { page, limit, type: type as 'all' | 'cheer' | 'reminder' | 'achievement' | 'system', unread_only: unreadOnly });
+
+          const embed = new EmbedBuilder()
+            .setColor(0x0099ff)
+            .setTitle('🔔 Your Notifications')
+            .setDescription(`**Total:** ${notificationsData.pagination.total} notifications`)
+            .setTimestamp();
+
+          if (notificationsData.notifications.length === 0) {
+            embed.addFields({
+              name: '📭 No Notifications',
+              value: unreadOnly 
+                ? 'No unread notifications.'
+                : 'No notifications found.',
+              inline: false
+            });
+          } else {
+            const notificationList = notificationsData.notifications.map((notification, index) => {
+              const notificationNumber = (notificationsData.pagination.page - 1) * notificationsData.pagination.limit + index + 1;
+              const readStatus = notification.read ? '✅' : '🔴';
+              const typeEmoji = {
+                'cheer': '🎉',
+                'achievement': '🏆',
+                'reminder': '⏰',
+                'system': '⚙️'
+              }[notification.type] || '📢';
+              
+              return `**${notificationNumber}.** ${readStatus} ${typeEmoji} ${notification.title}\n   ${notification.message}\n   *${formatDate(notification.created_at)}*`;
+            }).join('\n\n');
+
+            embed.addFields({
+              name: `📋 Notifications (${notificationsData.pagination.page} of ${notificationsData.pagination.pages})`,
+              value: notificationList,
+              inline: false
+            });
           }
-        ];
 
-        // Filter notifications based on type and read status
-        let filteredNotifications = mockNotifications;
-        
-        if (type !== 'all') {
-          filteredNotifications = filteredNotifications.filter(n => n.type === type);
-        }
-        
-        if (unreadOnly) {
-          filteredNotifications = filteredNotifications.filter(n => !n.read);
-        }
+          // Add pagination buttons if there are multiple pages
+          const components = notificationsData.pagination.pages > 1 ? createPaginationButtons(page, notificationsData.pagination.pages) : [];
 
-        const totalNotifications = filteredNotifications.length;
-        const totalPages = Math.ceil(totalNotifications / limit);
-        const startIndex = (page - 1) * limit;
-        const endIndex = Math.min(startIndex + limit, totalNotifications);
-        const pageNotifications = filteredNotifications.slice(startIndex, endIndex);
-
-        const embed = new EmbedBuilder()
-          .setColor(0x0099ff)
-          .setTitle('🔔 Your Notifications')
-          .setDescription(`**Total:** ${totalNotifications} notifications`)
-          .setTimestamp();
-
-        if (pageNotifications.length === 0) {
-          embed.addFields({
-            name: '📭 No Notifications',
-            value: unreadOnly 
-              ? 'No unread notifications.'
-              : 'No notifications found.',
-            inline: false
+          await interaction.editReply({
+            embeds: [embed],
+            components
           });
-        } else {
-          const notificationList = pageNotifications.map((notification, index) => {
-            const notificationNumber = startIndex + index + 1;
-            const readStatus = notification.read ? '✅' : '🔴';
-            const typeEmoji = {
-              'cheer': '🎉',
-              'achievement': '🏆',
-              'reminder': '⏰',
-              'system': '⚙️'
-            }[notification.type] || '📢';
-            
-            return `**${notificationNumber}.** ${readStatus} ${typeEmoji} ${notification.title}\n   ${notification.message}\n   *${formatDate(notification.created_at)}*`;
-          }).join('\n\n');
 
-          embed.addFields({
-            name: `📋 Notifications (${startIndex + 1}-${endIndex} of ${totalNotifications})`,
-            value: notificationList,
-            inline: false
-          });
+        } catch (apiError) {
+          // If user doesn't exist in the system, show registration prompt
+          const embed = new EmbedBuilder()
+            .setColor(0xffa500)
+            .setTitle('👤 User Not Found')
+            .setDescription(
+              `**User:** <@${userId}>\n\n` +
+              `This user hasn't registered with WaddleTracker yet.\n` +
+              `They need to visit the [WaddleTracker website](https://waddletracker.com) to create an account and link their Discord profile.`
+            )
+            .addFields({
+              name: '🔗 How to Register',
+              value: '1. Visit [waddletracker.com](https://waddletracker.com)\n2. Sign up with Discord\n3. Link your Discord account\n4. Start receiving notifications!',
+              inline: false
+            })
+            .setThumbnail(interaction.user.displayAvatarURL())
+            .setTimestamp();
+
+          await interaction.editReply({ embeds: [embed] });
         }
-
-        // Add pagination buttons if there are multiple pages
-        const components = totalPages > 1 ? createPaginationButtons(page, totalPages) : [];
-
-        await interaction.editReply({
-          embeds: [embed],
-          components
-        });
 
       } else if (subcommand === 'mark_read') {
         await interaction.deferReply({ ephemeral: true });

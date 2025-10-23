@@ -32,45 +32,31 @@ export class CheckinHandler implements CommandHandler {
         discord_message_id: interaction.id // Use interaction ID as message ID
       };
 
-      // For now, we'll simulate the API call since we don't have authentication tokens
-      // In a real implementation, you'd need to handle Discord OAuth2 flow
+      // Show registration required message
       const embed = new EmbedBuilder()
-        .setColor(getStatusColor(status))
-        .setTitle(`${getStatusEmoji(status)} Check-in ${status === 'went' ? 'Successful' : 'Recorded'}`)
+        .setColor(0xffa500)
+        .setTitle('🔐 Authentication Required')
         .setDescription(
-          `**Status:** ${status === 'went' ? 'Went to gym' : 'Missed workout'}\n` +
-          `**Date:** ${new Date().toLocaleString()}\n` +
-          `**User:** <@${userId}>`
+          `**User:** <@${userId}>\n\n` +
+          `You need to register with WaddleTracker before you can log check-ins.\n` +
+          `Please visit the [WaddleTracker website](https://waddletracker.com) to create an account and link your Discord profile.`
         )
+        .addFields(
+          {
+            name: '🔗 How to Get Started',
+            value: '1. Visit [waddletracker.com](https://waddletracker.com)\n2. Sign up with Discord\n3. Link your Discord account\n4. Come back and use `/checkin`!',
+            inline: false
+          },
+          {
+            name: '💡 What You\'ll Get',
+            value: '• Track your gym sessions\n• Build streaks and achievements\n• Get motivation from the community\n• View your progress analytics',
+            inline: false
+          }
+        )
+        .setThumbnail(interaction.user.displayAvatarURL())
         .setTimestamp();
 
-      if (photoUrl) {
-        embed.setImage(photoUrl);
-      }
-
-      // Add confirmation buttons
-      const row = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`checkin_confirm_${interaction.id}`)
-            .setLabel('Confirm Check-in')
-            .setStyle(ButtonStyle.Success),
-          new ButtonBuilder()
-            .setCustomId(`checkin_cancel_${interaction.id}`)
-            .setLabel('Cancel')
-            .setStyle(ButtonStyle.Danger)
-        );
-
-      await interaction.editReply({
-        embeds: [embed],
-        components: [row]
-      });
-
-      // TODO: In a real implementation, you would:
-      // 1. Get user's JWT token from Discord OAuth2
-      // 2. Call apiClient.createCheckIn(checkInData, token)
-      // 3. Post the embed to the gym-pics channel
-      // 4. Update user's streak display
+      await interaction.editReply({ embeds: [embed] });
 
     } catch (error) {
       await handleApiError(interaction, error);

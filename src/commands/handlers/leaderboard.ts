@@ -15,64 +15,60 @@ export class LeaderboardHandler implements CommandHandler {
       let title: string;
       let description: string;
 
-      if (subcommand === 'streaks') {
-        const type = interaction.options.getString('type') || 'current';
-        
-        // For now, we'll create a mock leaderboard
-        // In a real implementation, you'd call apiClient.getStreakLeaderboard(limit, type)
-        const mockEntries = [
-          { rank: 1, username: 'FitnessGuru', streak: 45, avatar: 'https://cdn.discordapp.com/embed/avatars/0.png' },
-          { rank: 2, username: 'GymBeast', streak: 32, avatar: 'https://cdn.discordapp.com/embed/avatars/1.png' },
-          { rank: 3, username: 'IronMan', streak: 28, avatar: 'https://cdn.discordapp.com/embed/avatars/2.png' },
-          { rank: 4, username: 'WorkoutWarrior', streak: 21, avatar: 'https://cdn.discordapp.com/embed/avatars/3.png' },
-          { rank: 5, username: 'MuscleMaster', streak: 18, avatar: 'https://cdn.discordapp.com/embed/avatars/4.png' }
-        ];
+      try {
+        if (subcommand === 'streaks') {
+          const type = interaction.options.getString('type') || 'current';
+          
+          // Get real leaderboard data from API
+          const leaderboardData = await apiClient.getStreakLeaderboard(limit, type as 'current' | 'longest');
+          
+          embed = new EmbedBuilder()
+            .setColor(leaderboardData.embed.color || 0xff6b35)
+            .setTitle(leaderboardData.embed.title || `🔥 ${type === 'current' ? 'Current' : 'Longest'} Streak Leaderboard`)
+            .setDescription(leaderboardData.embed.description || 'No data available')
+            .setFooter(leaderboardData.embed.footer || { text: `Showing top ${limit} users` })
+            .setTimestamp();
 
-        title = `🔥 ${type === 'current' ? 'Current' : 'Longest'} Streak Leaderboard`;
-        description = mockEntries.map(entry => 
-          `**${entry.rank}.** ${entry.username} - ${entry.streak} days 🔥`
-        ).join('\n');
+          // Add fields if they exist
+          if (leaderboardData.embed.fields) {
+            embed.addFields(leaderboardData.embed.fields);
+          }
 
+        } else if (subcommand === 'checkins') {
+          const period = interaction.options.getString('period') || 'all';
+          
+          // Get real leaderboard data from API
+          const leaderboardData = await apiClient.getCheckInLeaderboard(limit, period as 'all' | 'week' | 'month' | 'year');
+          
+          embed = new EmbedBuilder()
+            .setColor(leaderboardData.embed.color || 0x00ff00)
+            .setTitle(leaderboardData.embed.title || `📊 Check-in Leaderboard`)
+            .setDescription(leaderboardData.embed.description || 'No data available')
+            .setFooter(leaderboardData.embed.footer || { text: `Showing top ${limit} users` })
+            .setTimestamp();
+
+          // Add fields if they exist
+          if (leaderboardData.embed.fields) {
+            embed.addFields(leaderboardData.embed.fields);
+          }
+        } else {
+          throw new Error('Invalid subcommand');
+        }
+      } catch (apiError) {
+        // If API fails, show registration prompt
         embed = new EmbedBuilder()
-          .setColor(0xff6b35)
-          .setTitle(title)
-          .setDescription(description)
-          .setFooter({ text: `Showing top ${limit} users` })
+          .setColor(0xffa500)
+          .setTitle('🔐 Registration Required')
+          .setDescription(
+            `To view leaderboards, users need to register with WaddleTracker first.\n` +
+            `Visit [waddletracker.com](https://waddletracker.com) to create an account and link your Discord profile.`
+          )
+          .addFields({
+            name: '🔗 How to Get Started',
+            value: '1. Visit [waddletracker.com](https://waddletracker.com)\n2. Sign up with Discord\n3. Link your Discord account\n4. Start tracking and competing!',
+            inline: false
+          })
           .setTimestamp();
-
-      } else if (subcommand === 'checkins') {
-        const period = interaction.options.getString('period') || 'all';
-        
-        // For now, we'll create a mock leaderboard
-        // In a real implementation, you'd call apiClient.getCheckInLeaderboard(limit, period)
-        const mockEntries = [
-          { rank: 1, username: 'CheckInKing', count: 156, avatar: 'https://cdn.discordapp.com/embed/avatars/0.png' },
-          { rank: 2, username: 'GymRegular', count: 142, avatar: 'https://cdn.discordapp.com/embed/avatars/1.png' },
-          { rank: 3, username: 'FitnessFanatic', count: 128, avatar: 'https://cdn.discordapp.com/embed/avatars/2.png' },
-          { rank: 4, username: 'WorkoutWizard', count: 115, avatar: 'https://cdn.discordapp.com/embed/avatars/3.png' },
-          { rank: 5, username: 'GymGoer', count: 98, avatar: 'https://cdn.discordapp.com/embed/avatars/4.png' }
-        ];
-
-        const periodText = {
-          'all': 'All Time',
-          'week': 'This Week',
-          'month': 'This Month',
-          'year': 'This Year'
-        }[period] || 'All Time';
-
-        title = `📊 Check-in Leaderboard (${periodText})`;
-        description = mockEntries.map(entry => 
-          `**${entry.rank}.** ${entry.username} - ${entry.count} check-ins 💪`
-        ).join('\n');
-
-        embed = new EmbedBuilder()
-          .setColor(0x00ff00)
-          .setTitle(title)
-          .setDescription(description)
-          .setFooter({ text: `Showing top ${limit} users` })
-          .setTimestamp();
-      } else {
-        throw new Error('Invalid subcommand');
       }
 
       // Add pagination buttons if there are multiple pages

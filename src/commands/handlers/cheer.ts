@@ -25,38 +25,32 @@ export class CheerHandler implements CommandHandler {
         throw new ValidationError('Cheer message must be less than 500 characters');
       }
 
-      // Create cheer embed
+      // Show registration required message
       const embed = new EmbedBuilder()
-        .setColor(0xffd700)
-        .setTitle('🎉 Someone sent you a cheer!')
-        .setDescription(`**From:** <@${interaction.user.id}>\n**Message:** ${message}`)
+        .setColor(0xffa500)
+        .setTitle('🔐 Authentication Required')
+        .setDescription(
+          `**From:** <@${interaction.user.id}>\n` +
+          `**To:** <@${targetUserId}>\n\n` +
+          `You need to register with WaddleTracker before you can send cheers.\n` +
+          `Please visit the [WaddleTracker website](https://waddletracker.com) to create an account and link your Discord profile.`
+        )
+        .addFields(
+          {
+            name: '🔗 How to Get Started',
+            value: '1. Visit [waddletracker.com](https://waddletracker.com)\n2. Sign up with Discord\n3. Link your Discord account\n4. Come back and use `/cheer`!',
+            inline: false
+          },
+          {
+            name: '💡 What You\'ll Get',
+            value: '• Send encouragement to friends\n• Receive cheers from the community\n• Build a supportive fitness network\n• Motivate others on their journey',
+            inline: false
+          }
+        )
         .setThumbnail(interaction.user.displayAvatarURL())
         .setTimestamp();
 
-      // Add confirmation buttons
-      const row = new ActionRowBuilder<ButtonBuilder>()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId(`cheer_send_${interaction.id}`)
-            .setLabel('Send Cheer')
-            .setStyle(ButtonStyle.Success),
-          new ButtonBuilder()
-            .setCustomId(`cheer_cancel_${interaction.id}`)
-            .setLabel('Cancel')
-            .setStyle(ButtonStyle.Danger)
-        );
-
-      await interaction.editReply({
-        embeds: [embed],
-        components: [row]
-      });
-
-      // TODO: In a real implementation, you would:
-      // 1. Get user's JWT token from Discord OAuth2
-      // 2. Call apiClient.sendCheer({ to_user_id: targetUserId, message }, token)
-      // 3. Get cheer embed from apiClient.getCheerEmbed()
-      // 4. Send notification to the target user
-      // 5. Post the cheer to the general channel
+      await interaction.editReply({ embeds: [embed] });
 
     } catch (error) {
       await handleApiError(interaction, error);

@@ -17,37 +17,55 @@ export class ScheduleHandler implements CommandHandler {
       } else if (subcommand === 'view') {
         await interaction.deferReply({ ephemeral: true });
 
-        // For now, we'll create a mock schedule
-        // In a real implementation, you'd call apiClient.getUserSchedule(userId)
-        const mockSchedule = {
-          days_of_week: ['Monday', 'Wednesday', 'Friday'],
-          time: '18:00'
-        };
+        try {
+          // Get real schedule data from API
+          const schedule = await apiClient.getUserSchedule(userId);
 
-        const embed = new EmbedBuilder()
-          .setColor(0x0099ff)
-          .setTitle('📅 Your Gym Schedule')
-          .setDescription('Here\'s your current gym schedule:')
-          .addFields(
-            {
-              name: '📆 Days',
-              value: mockSchedule.days_of_week.join(', '),
-              inline: true
-            },
-            {
-              name: '⏰ Time',
-              value: mockSchedule.time,
-              inline: true
-            },
-            {
-              name: '🔔 Reminders',
-              value: 'You\'ll receive reminders 30 minutes before your scheduled workout time.',
+          const embed = new EmbedBuilder()
+            .setColor(0x0099ff)
+            .setTitle('📅 Your Gym Schedule')
+            .setDescription('Here\'s your current gym schedule:')
+            .addFields(
+              {
+                name: '📆 Days',
+                value: schedule.days_of_week.join(', '),
+                inline: true
+              },
+              {
+                name: '⏰ Time',
+                value: schedule.time,
+                inline: true
+              },
+              {
+                name: '🔔 Reminders',
+                value: 'You\'ll receive reminders 30 minutes before your scheduled workout time.',
+                inline: false
+              }
+            )
+            .setTimestamp();
+
+          await interaction.editReply({ embeds: [embed] });
+
+        } catch (apiError) {
+          // If user doesn't have a schedule, show setup prompt
+          const embed = new EmbedBuilder()
+            .setColor(0xffa500)
+            .setTitle('📅 No Schedule Set')
+            .setDescription(
+              `**User:** <@${userId}>\n\n` +
+              `You haven't set up your gym schedule yet.\n` +
+              `Use \`/schedule set\` to create your workout schedule and get automated reminders!`
+            )
+            .addFields({
+              name: '🔗 How to Set Up',
+              value: '1. Use `/schedule set` command\n2. Choose your workout days\n3. Set your preferred time\n4. Get automated reminders!',
               inline: false
-            }
-          )
-          .setTimestamp();
+            })
+            .setThumbnail(interaction.user.displayAvatarURL())
+            .setTimestamp();
 
-        await interaction.editReply({ embeds: [embed] });
+          await interaction.editReply({ embeds: [embed] });
+        }
 
       } else if (subcommand === 'delete') {
         await interaction.deferReply({ ephemeral: true });

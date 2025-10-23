@@ -14,86 +14,71 @@ export class GalleryHandler implements CommandHandler {
 
       const isSelf = targetUserId === interaction.user.id;
 
-      // For now, we'll create a mock gallery
-      // In a real implementation, you'd call apiClient.getGallery(targetUserId, { page, limit, status })
-      const mockPhotos = [
-        {
-          id: '1',
-          date: new Date(Date.now() - 86400000).toISOString(),
-          status: 'went' as const,
-          photo_url: 'https://cdn.discordapp.com/attachments/123456789/photo1.jpg'
-        },
-        {
-          id: '2',
-          date: new Date(Date.now() - 172800000).toISOString(),
-          status: 'went' as const,
-          photo_url: 'https://cdn.discordapp.com/attachments/123456789/photo2.jpg'
-        },
-        {
-          id: '3',
-          date: new Date(Date.now() - 259200000).toISOString(),
-          status: 'missed' as const,
-          photo_url: 'https://cdn.discordapp.com/attachments/123456789/photo3.jpg'
+      try {
+        // Get real gallery data from API
+        const galleryData = await apiClient.getGallery(targetUserId, { page, limit, status: status as 'all' | 'went' | 'missed' });
+
+        const embed = new EmbedBuilder()
+          .setColor(0x0099ff)
+          .setTitle(`📸 ${isSelf ? 'Your' : 'User'} Photo Gallery`)
+          .setDescription(`**User:** <@${targetUserId}>\n**Total Photos:** ${galleryData.pagination.total}`)
+          .setTimestamp();
+
+        if (galleryData.photos.length === 0) {
+          embed.addFields({
+            name: '📷 No Photos Found',
+            value: status === 'all' 
+              ? 'No photos have been uploaded yet.'
+              : `No photos found with status: ${status}`,
+            inline: false
+          });
+        } else {
+          // Add photo information
+          const photoInfo = galleryData.photos.map((photo, index) => {
+            const photoNumber = (galleryData.pagination.page - 1) * galleryData.pagination.limit + index + 1;
+            return `**${photoNumber}.** ${getStatusEmoji(photo.status)} ${formatDate(photo.date)}`;
+          }).join('\n');
+
+          embed.addFields({
+            name: `📷 Photos (${galleryData.pagination.page} of ${galleryData.pagination.pages})`,
+            value: photoInfo,
+            inline: false
+          });
+
+          // Set the first photo as the embed image
+          if (galleryData.photos[0]?.photo_url) {
+            embed.setImage(galleryData.photos[0].photo_url);
+          }
         }
-      ];
 
-      // Filter photos by status if specified
-      const filteredPhotos = status === 'all' 
-        ? mockPhotos 
-        : mockPhotos.filter(photo => photo.status === status);
+        // Add pagination buttons if there are multiple pages
+        const components = galleryData.pagination.pages > 1 ? createPaginationButtons(page, galleryData.pagination.pages) : [];
 
-      const totalPhotos = filteredPhotos.length;
-      const totalPages = Math.ceil(totalPhotos / limit);
-      const startIndex = (page - 1) * limit;
-      const endIndex = Math.min(startIndex + limit, totalPhotos);
-      const pagePhotos = filteredPhotos.slice(startIndex, endIndex);
-
-      const embed = new EmbedBuilder()
-        .setColor(0x0099ff)
-        .setTitle(`📸 ${isSelf ? 'Your' : 'User'} Photo Gallery`)
-        .setDescription(`**User:** <@${targetUserId}>\n**Total Photos:** ${totalPhotos}`)
-        .setTimestamp();
-
-      if (pagePhotos.length === 0) {
-        embed.addFields({
-          name: '📷 No Photos Found',
-          value: status === 'all' 
-            ? 'No photos have been uploaded yet.'
-            : `No photos found with status: ${status}`,
-          inline: false
-        });
-      } else {
-        // Add photo information
-        const photoInfo = pagePhotos.map((photo, index) => {
-          const photoNumber = startIndex + index + 1;
-          return `**${photoNumber}.** ${getStatusEmoji(photo.status)} ${formatDate(photo.date)}`;
-        }).join('\n');
-
-        embed.addFields({
-          name: `📷 Photos (${startIndex + 1}-${endIndex} of ${totalPhotos})`,
-          value: photoInfo,
-          inline: false
+        await interaction.editReply({
+          embeds: [embed],
+          components
         });
 
-        // Set the first photo as the embed image
-        if (pagePhotos[0]?.photo_url) {
-          embed.setImage(pagePhotos[0].photo_url);
-        }
+      } catch (apiError) {
+        // If user doesn't exist in the system, show registration prompt
+        const embed = new EmbedBuilder()
+          .setColor(0xffa500)
+          .setTitle('👤 User Not Found')
+          .setDescription(
+            `**User:** <@${targetUserId}>\n\n` +
+            `This user hasn't registered with WaddleTracker yet.\n` +
+            `They need to visit the [WaddleTracker website](https://waddletracker.com) to create an account and link their Discord profile.`
+          )
+          .addFields({
+            name: '🔗 How to Register',
+            value: '1. Visit [waddletracker.com](https://waddletracker.com)\n2. Sign up with Discord\n3. Link your Discord account\n4. Start sharing your fitness journey!',
+            inline: false
+          })
+          .setThumbnail(interaction.user.displayAvatarURL())
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
       }
-
-      // Add pagination buttons if there are multiple pages
-      const components = totalPages > 1 ? createPaginationButtons(page, totalPages) : [];
-
-      await interaction.editReply({
-        embeds: [embed],
-        components
-      });
-
-      // TODO: In a real implementation, you would:
-      // 1. Call apiClient.getGallery(targetUserId, { page, limit, status })
-      // 2. Use the returned pagination data
-      // 3. Handle cases where user doesn't exist in the system
-      // 4. Implement proper image display for multiple photos
 
     } catch (error) {
       await handleApiError(interaction, error);
