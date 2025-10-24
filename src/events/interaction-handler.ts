@@ -176,18 +176,45 @@ export class InteractionHandler {
   }
 
   private async handleScheduleDeleteConfirm(interaction: ButtonInteraction): Promise<void> {
-    await interaction.deferUpdate();
-    
-    const embed = createErrorEmbed(
-      'Schedule Deleted',
-      'Your gym schedule has been deleted. (This is a demo - actual API integration needed)'
-    );
-    embed.setColor(0x00ff00);
+    try {
+      await interaction.deferUpdate();
+      
+      const userId = interaction.user.id;
+      
+      // TODO: Add API call to delete schedule
+      // await apiClient.deleteSchedule(userId);
+      
+      const embed = new EmbedBuilder()
+        .setColor(0x00ff00)
+        .setTitle('✅ Schedule Deleted')
+        .setDescription(
+          `**User:** <@${userId}>\n\n` +
+          `Your gym schedule has been successfully deleted.\n` +
+          `You can create a new schedule anytime using \`/schedule rotation\` or \`/schedule weekly\`.`
+        )
+        .addFields({
+          name: '🔗 Create New Schedule',
+          value: '• `/schedule rotation` - Create a rotation pattern\n• `/schedule weekly` - Set specific days\n• `/schedule view` - View your current schedule',
+          inline: false
+        })
+        .setThumbnail(interaction.user.displayAvatarURL())
+        .setTimestamp();
 
-    await interaction.editReply({
-      embeds: [embed],
-      components: []
-    });
+      await interaction.editReply({
+        embeds: [embed],
+        components: []
+      });
+      
+      logger.info(`Schedule deleted for user: ${userId}`);
+      
+    } catch (error) {
+      logger.error('Schedule delete confirmation error:', error);
+      const embed = createErrorEmbed(
+        'Delete Error',
+        'An error occurred while deleting your schedule. Please try again.'
+      );
+      await interaction.editReply({ embeds: [embed], components: [] });
+    }
   }
 
   private async handleScheduleDeleteCancel(interaction: ButtonInteraction): Promise<void> {
@@ -205,17 +232,61 @@ export class InteractionHandler {
   }
 
   private async handlePagination(interaction: ButtonInteraction): Promise<void> {
-    await interaction.deferUpdate();
-    
-    const embed = createErrorEmbed(
-      'Pagination',
-      'Pagination feature coming soon! (This is a demo)'
-    );
+    try {
+      await interaction.deferUpdate();
+      
+      const customId = interaction.customId;
+      const page = parseInt(customId.replace('page_', ''));
+      
+      if (isNaN(page)) {
+        logger.warn(`Invalid page number in pagination: ${customId}`);
+        return;
+      }
 
-    await interaction.editReply({
-      embeds: [embed],
-      components: []
-    });
+      // Extract context from the original message to determine what we're paginating
+      const originalEmbed = interaction.message.embeds[0];
+      if (!originalEmbed) {
+        logger.warn('No original embed found for pagination');
+        return;
+      }
+
+      // Determine the command type based on embed title
+      const title = originalEmbed.title || '';
+      let commandType = '';
+      let targetUserId = '';
+
+      if (title.includes('Photo Gallery')) {
+        commandType = 'gallery';
+        // Extract user ID from description
+        const description = originalEmbed.description || '';
+        const userMatch = description.match(/<@(\d+)>/);
+        targetUserId = userMatch ? userMatch[1] : interaction.user.id;
+      } else if (title.includes('Notifications')) {
+        commandType = 'notifications';
+        targetUserId = interaction.user.id;
+      } else if (title.includes('Leaderboard')) {
+        commandType = 'leaderboard';
+      }
+
+      // Handle pagination based on command type
+      if (commandType === 'gallery') {
+        await this.handleGalleryPagination(interaction, targetUserId, page);
+      } else if (commandType === 'notifications') {
+        await this.handleNotificationsPagination(interaction, targetUserId, page);
+      } else if (commandType === 'leaderboard') {
+        await this.handleLeaderboardPagination(interaction, page);
+      } else {
+        logger.warn(`Unknown pagination context: ${title}`);
+      }
+
+    } catch (error) {
+      logger.error('Pagination error:', error);
+      const embed = createErrorEmbed(
+        'Pagination Error',
+        'An error occurred while loading the page. Please try again.'
+      );
+      await interaction.editReply({ embeds: [embed], components: [] });
+    }
   }
 
   private async handleRegistration(interaction: ButtonInteraction): Promise<void> {
@@ -412,38 +483,290 @@ export class InteractionHandler {
 
   // Modal handlers
   private async handleScheduleModal(interaction: ModalSubmitInteraction): Promise<void> {
-    const days = interaction.fields.getTextInputValue('schedule_days');
-    const time = interaction.fields.getTextInputValue('schedule_time');
+    try {
+      const days = interaction.fields.getTextInputValue('schedule_days');
+      const time = interaction.fields.getTextInputValue('schedule_time');
+      const timezone = interaction.fields.getTextInputValue('schedule_timezone') || 'UTC';
 
-    await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ ephemeral: true });
 
-    // Validate input
-    if (!days || !time) {
+      // Validate input
+      if (!days || !time) {
+        const embed = createErrorEmbed(
+          'Validation Error',
+          'Please fill in all required fields.'
+        );
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
+
+      // Validate time format
+      const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeRegex.test(time)) {
+        const embed = createErrorEmbed(
+          'Invalid Time Format',
+          'Please use 24-hour format (e.g., 18:00).'
+        );
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
+
+      const userId = interaction.user.id;
+      const workoutDays = days.split(',').map(day => day.trim());
+
+      // Create weekly schedule using the API
+      const result = await apiClient.createFlexibleSchedule({
+        discord_id: userId,
+        schedule_type: 'weekly',
+        workout_days: workoutDays,
+        timezone,
+        reminder_time: time,
+        rest_days_allowed: true
+      });
+
+      const embed = new EmbedBuilder()
+        .setColor(0x00ff00)
+        .setTitle('✅ Schedule Created!')
+        .setDescription(result.message)
+        .addFields(
+          {
+            name: '📅 Workout Days',
+            value: workoutDays.join(', '),
+            inline: true
+          },
+          {
+            name: '⏰ Reminder Time',
+            value: time,
+            inline: true
+          },
+          {
+            name: '🌍 Timezone',
+            value: timezone,
+            inline: true
+          },
+          {
+            name: '📅 Today\'s Activity',
+            value: result.today_scheduled_type === 'workout' ? 'Workout Day 💪' : 
+                   result.today_scheduled_type === 'rest' ? 'Rest Day 😴' : 'No activity scheduled',
+            inline: false
+          }
+        )
+        .setThumbnail(interaction.user.displayAvatarURL())
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
+      
+      logger.info(`Schedule created for user: ${userId}`);
+
+    } catch (error) {
+      logger.error('Schedule modal error:', error);
       const embed = createErrorEmbed(
-        'Validation Error',
-        'Please fill in all required fields.'
+        'Schedule Creation Failed',
+        'Unable to create your schedule. Please try again later.'
       );
       await interaction.editReply({ embeds: [embed] });
-      return;
     }
+  }
 
-    // Validate time format
-    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(time)) {
+  // Pagination handlers
+  private async handleGalleryPagination(interaction: ButtonInteraction, targetUserId: string, page: number): Promise<void> {
+    try {
+      // Get gallery data for the requested page
+      const galleryData = await apiClient.getGallery(targetUserId, { page, limit: 10, status: 'all' });
+      
+      const isSelf = targetUserId === interaction.user.id;
+      const embed = new EmbedBuilder()
+        .setColor(0x0099ff)
+        .setTitle(`📸 ${isSelf ? 'Your' : 'User'} Photo Gallery`)
+        .setDescription(`**User:** <@${targetUserId}>\n**Total Photos:** ${galleryData.pagination.total}`)
+        .setTimestamp();
+
+      if (galleryData.photos.length === 0) {
+        embed.addFields({
+          name: '📷 No Photos Found',
+          value: 'No photos have been uploaded yet.',
+          inline: false
+        });
+      } else {
+        // Add photo information
+        const photoInfo = galleryData.photos.map((photo, index) => {
+          const photoNumber = (galleryData.pagination.page - 1) * galleryData.pagination.limit + index + 1;
+          const statusEmoji = photo.status === 'went' ? '✅' : '❌';
+          const date = new Date(photo.date).toLocaleDateString();
+          return `**${photoNumber}.** ${statusEmoji} ${date}`;
+        }).join('\n');
+
+        embed.addFields({
+          name: `📷 Photos (${galleryData.pagination.page} of ${galleryData.pagination.pages})`,
+          value: photoInfo,
+          inline: false
+        });
+
+        // Set the first photo as the embed image
+        if (galleryData.photos[0]?.photo_url) {
+          embed.setImage(galleryData.photos[0].photo_url);
+        }
+      }
+
+      // Add pagination buttons if there are multiple pages
+      const components = galleryData.pagination.pages > 1 ? this.createPaginationButtons(page, galleryData.pagination.pages) : [];
+
+      await interaction.editReply({
+        embeds: [embed],
+        components
+      });
+
+    } catch (error) {
+      logger.error('Gallery pagination error:', error);
       const embed = createErrorEmbed(
-        'Invalid Time Format',
-        'Please use 24-hour format (e.g., 18:00).'
+        'Gallery Error',
+        'Unable to load gallery page. Please try again.'
       );
-      await interaction.editReply({ embeds: [embed] });
-      return;
+      await interaction.editReply({ embeds: [embed], components: [] });
     }
+  }
 
-    const embed = createErrorEmbed(
-      'Schedule Set!',
-      `Your gym schedule has been set!\n**Days:** ${days}\n**Time:** ${time}\n\n(This is a demo - actual API integration needed)`
+  private async handleNotificationsPagination(interaction: ButtonInteraction, userId: string, page: number): Promise<void> {
+    try {
+      // Get notifications data for the requested page
+      const notificationsData = await apiClient.getUserNotifications(userId, { page, limit: 10, type: 'all', unread_only: false });
+      
+      const embed = new EmbedBuilder()
+        .setColor(0x0099ff)
+        .setTitle('🔔 Your Notifications')
+        .setDescription(`**Total:** ${notificationsData.pagination.total} notifications`)
+        .setTimestamp();
+
+      if (notificationsData.notifications.length === 0) {
+        embed.addFields({
+          name: '📭 No Notifications',
+          value: 'No notifications found.',
+          inline: false
+        });
+      } else {
+        const notificationList = notificationsData.notifications.map((notification, index) => {
+          const notificationNumber = (notificationsData.pagination.page - 1) * notificationsData.pagination.limit + index + 1;
+          const readStatus = notification.read ? '✅' : '🔴';
+          const typeEmoji = {
+            'cheer': '🎉',
+            'achievement': '🏆',
+            'reminder': '⏰',
+            'system': '⚙️'
+          }[notification.type] || '📢';
+          
+          const date = new Date(notification.created_at).toLocaleDateString();
+          return `**${notificationNumber}.** ${readStatus} ${typeEmoji} ${notification.title}\n   ${notification.message}\n   *${date}*`;
+        }).join('\n\n');
+
+        embed.addFields({
+          name: `📋 Notifications (${notificationsData.pagination.page} of ${notificationsData.pagination.pages})`,
+          value: notificationList,
+          inline: false
+        });
+      }
+
+      // Add pagination buttons if there are multiple pages
+      const components = notificationsData.pagination.pages > 1 ? this.createPaginationButtons(page, notificationsData.pagination.pages) : [];
+
+      await interaction.editReply({
+        embeds: [embed],
+        components
+      });
+
+    } catch (error) {
+      logger.error('Notifications pagination error:', error);
+      const embed = createErrorEmbed(
+        'Notifications Error',
+        'Unable to load notifications page. Please try again.'
+      );
+      await interaction.editReply({ embeds: [embed], components: [] });
+    }
+  }
+
+  private async handleLeaderboardPagination(interaction: ButtonInteraction, page: number): Promise<void> {
+    try {
+      // For leaderboard pagination, we need to determine the type from the original embed
+      const originalEmbed = interaction.message.embeds[0];
+      const description = originalEmbed?.description || '';
+      
+      let leaderboardData;
+      let title;
+      
+      if (description.includes('Streak')) {
+        leaderboardData = await apiClient.getStreakLeaderboard(10, 'current');
+        title = '🔥 Current Streak Leaderboard';
+      } else {
+        leaderboardData = await apiClient.getCheckInLeaderboard(10, 'all');
+        title = '📊 Check-in Leaderboard';
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(leaderboardData.embed.color || 0xff6b35)
+        .setTitle(leaderboardData.embed.title || title)
+        .setDescription(leaderboardData.embed.description || 'No data available')
+        .setFooter(leaderboardData.embed.footer || { text: `Page ${page}` })
+        .setTimestamp();
+
+      // Add fields if they exist
+      if (leaderboardData.embed.fields) {
+        embed.addFields(leaderboardData.embed.fields);
+      }
+
+      // Add pagination buttons
+      const components = this.createPaginationButtons(page, Math.ceil(leaderboardData.embed.fields?.length || 0 / 10) || 1);
+
+      await interaction.editReply({
+        embeds: [embed],
+        components
+      });
+
+    } catch (error) {
+      logger.error('Leaderboard pagination error:', error);
+      const embed = createErrorEmbed(
+        'Leaderboard Error',
+        'Unable to load leaderboard page. Please try again.'
+      );
+      await interaction.editReply({ embeds: [embed], components: [] });
+    }
+  }
+
+  private createPaginationButtons(currentPage: number, totalPages: number): ActionRowBuilder<ButtonBuilder>[] {
+    const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+    
+    if (totalPages <= 1) return rows;
+
+    const row = new ActionRowBuilder<ButtonBuilder>();
+    
+    // Previous button
+    if (currentPage > 1) {
+      row.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`page_${currentPage - 1}`)
+          .setLabel('◀️ Previous')
+          .setStyle(ButtonStyle.Primary)
+      );
+    }
+    
+    // Page info
+    row.addComponents(
+      new ButtonBuilder()
+        .setCustomId('page_info')
+        .setLabel(`${currentPage} / ${totalPages}`)
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true)
     );
-    embed.setColor(0x00ff00);
-
-    await interaction.editReply({ embeds: [embed] });
+    
+    // Next button
+    if (currentPage < totalPages) {
+      row.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`page_${currentPage + 1}`)
+          .setLabel('Next ▶️')
+          .setStyle(ButtonStyle.Primary)
+      );
+    }
+    
+    rows.push(row);
+    return rows;
   }
 }

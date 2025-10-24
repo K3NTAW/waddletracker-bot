@@ -40,26 +40,36 @@ export class SchedulerService {
 
       logger.debug(`Checking reminders for ${currentDay} at ${currentTime}`);
 
-      // For now, we'll implement a simple reminder system
-      // In a real implementation, you would:
-      // 1. Query the database for users with schedules matching current day/time
-      // 2. Send reminders to those users
-      // 3. Handle different time zones
-
-      // Mock reminder check - in production, this would query the API
-      if (this.shouldSendReminder(currentTime)) {
-        await this.sendWorkoutReminder();
-      }
+      // Get all users who should receive reminders at this time
+      // This would typically be done by querying the API for users with schedules
+      // that match the current day and time
+      await this.sendScheduledReminders(currentTime, currentDay);
 
     } catch (error) {
       logger.error('Error in reminder check:', error);
     }
   }
 
-  private shouldSendReminder(time: string): boolean {
-    // Mock logic - in production, this would check against user schedules
-    // For demo purposes, send reminder at 18:00 (6 PM)
-    return time === '18:00';
+  private async sendScheduledReminders(currentTime: string, currentDay: string): Promise<void> {
+    try {
+      // TODO: Add API endpoint to get users who need reminders
+      // For now, we'll implement a basic reminder system
+      // In production, this would call: apiClient.getUsersForReminders(currentTime, currentDay)
+      
+      // Mock implementation - send general reminder at 18:00
+      if (currentTime === '18:00') {
+        await this.sendWorkoutReminder();
+      }
+      
+      // TODO: Implement per-user reminders based on their schedules
+      // const users = await apiClient.getUsersForReminders(currentTime, currentDay);
+      // for (const user of users) {
+      //   await this.sendPersonalReminder(user);
+      // }
+      
+    } catch (error) {
+      logger.error('Error sending scheduled reminders:', error);
+    }
   }
 
   private async sendWorkoutReminder(): Promise<void> {
@@ -146,6 +156,47 @@ export class SchedulerService {
 
     } catch (error) {
       logger.error('Error sending cheer notification:', error);
+    }
+  }
+
+  // Method to send personal workout reminders
+  private async sendPersonalReminder(userId: string, scheduleType: string): Promise<void> {
+    try {
+      const user = await this.client.users.fetch(userId);
+      if (!user) {
+        logger.warn(`User ${userId} not found for personal reminder`);
+        return;
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(0xff6b35)
+        .setTitle('🏋️ Workout Reminder!')
+        .setDescription(`Hey ${user.username}! It's time for your scheduled workout! 💪`)
+        .addFields(
+          {
+            name: '📅 Today\'s Activity',
+            value: scheduleType === 'workout' ? 'Workout Day 💪' : 'Rest Day 😴',
+            inline: true
+          },
+          {
+            name: '💪 Ready to crush it?',
+            value: 'Use `/checkin` to log your workout when you\'re done!',
+            inline: false
+          },
+          {
+            name: '📸 Share your progress',
+            value: 'Don\'t forget to take a photo and share it with the community!',
+            inline: false
+          }
+        )
+        .setThumbnail(user.displayAvatarURL())
+        .setTimestamp();
+
+      await user.send({ embeds: [embed] });
+      logger.info(`Personal reminder sent to ${user.username}`);
+
+    } catch (error) {
+      logger.error('Error sending personal reminder:', error);
     }
   }
 }

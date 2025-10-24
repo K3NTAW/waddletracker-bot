@@ -1,6 +1,7 @@
 import { ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { CommandHandler, createErrorEmbed, createSuccessEmbed, handleApiError, getUserId, createPaginationButtons, formatDate } from './index';
 import { apiClient } from '../../services/api-client';
+import logger from '../../utils/logger';
 
 export class NotificationsHandler implements CommandHandler {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -89,27 +90,38 @@ export class NotificationsHandler implements CommandHandler {
 
         const notificationIds = interaction.options.getString('notification_ids');
         
-        if (notificationIds) {
-          // Mark specific notifications as read
-          const ids = notificationIds.split(',').map(id => id.trim());
-          
-          // For now, we'll show a success message
-          // In a real implementation, you'd call apiClient.markNotificationsAsRead(userId, ids, token)
-          const embed = createSuccessEmbed(
-            'Notifications Marked as Read',
-            `Successfully marked ${ids.length} notification(s) as read.`
-          );
+        try {
+          if (notificationIds) {
+            // Mark specific notifications as read
+            const ids = notificationIds.split(',').map(id => id.trim());
+            
+            // TODO: Add API call to mark specific notifications as read
+            // await apiClient.markNotificationsAsRead(userId, ids, token);
+            
+            const embed = createSuccessEmbed(
+              'Notifications Marked as Read',
+              `Successfully marked ${ids.length} notification(s) as read.`
+            );
 
-          await interaction.editReply({ embeds: [embed] });
-        } else {
-          // Mark all notifications as read
-          // For now, we'll show a success message
-          // In a real implementation, you'd call apiClient.markAllNotificationsAsRead(userId, token)
-          const embed = createSuccessEmbed(
-            'All Notifications Marked as Read',
-            'All your notifications have been marked as read.'
-          );
+            await interaction.editReply({ embeds: [embed] });
+          } else {
+            // Mark all notifications as read
+            // TODO: Add API call to mark all notifications as read
+            // await apiClient.markAllNotificationsAsRead(userId, token);
+            
+            const embed = createSuccessEmbed(
+              'All Notifications Marked as Read',
+              'All your notifications have been marked as read.'
+            );
 
+            await interaction.editReply({ embeds: [embed] });
+          }
+        } catch (apiError) {
+          logger.error('Mark notifications as read error:', apiError);
+          const embed = createErrorEmbed(
+            'Mark as Read Failed',
+            'Unable to mark notifications as read. Please try again later.'
+          );
           await interaction.editReply({ embeds: [embed] });
         }
       }
