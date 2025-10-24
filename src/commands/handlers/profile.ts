@@ -15,6 +15,7 @@ export class ProfileHandler implements CommandHandler {
         // Get profile embed from API
         logger.info(`Fetching profile for Discord ID: ${targetUserId}`);
         const embedData = await apiClient.getProfileEmbed(targetUserId);
+        logger.info(`Profile API response:`, JSON.stringify(embedData, null, 2));
         
         const embed = new EmbedBuilder()
           .setColor(embedData.color || 0x0099ff)
