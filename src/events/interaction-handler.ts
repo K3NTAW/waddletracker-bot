@@ -246,22 +246,49 @@ export class InteractionHandler {
         });
       }
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Registration error:', error);
       
-      const embed = new EmbedBuilder()
-        .setColor(0xff0000)
-        .setTitle('❌ Registration Error')
-        .setDescription(
-          `An error occurred during registration. Please try again later.\n` +
-          `If the problem persists, contact support.`
-        )
-        .setTimestamp();
+      const customId = interaction.customId;
+      const userId = customId.replace('register_', '');
+      
+      // Handle specific error cases
+      if (error.statusCode === 400 && error.message?.includes('already registered')) {
+        const embed = new EmbedBuilder()
+          .setColor(0x0099ff)
+          .setTitle('✅ Already Registered!')
+          .setDescription(
+            `**User:** <@${userId}>\n\n` +
+            `You're already registered with WaddleTracker!\n` +
+            `You can now use all bot features.`
+          )
+          .addFields({
+            name: '🚀 Ready to Go!',
+            value: '• Use `/checkin` to log your gym sessions\n• Try `/profile` to see your stats\n• Use `/streak` to track your progress\n• Send `/cheer` to motivate friends!',
+            inline: false
+          })
+          .setThumbnail(interaction.user.displayAvatarURL())
+          .setTimestamp();
 
-      await interaction.editReply({
-        embeds: [embed],
-        components: []
-      });
+        await interaction.editReply({
+          embeds: [embed],
+          components: []
+        });
+      } else {
+        const embed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle('❌ Registration Error')
+          .setDescription(
+            `An error occurred during registration: ${error.message || 'Unknown error'}\n\n` +
+            `Please try again later or contact support if the problem persists.`
+          )
+          .setTimestamp();
+
+        await interaction.editReply({
+          embeds: [embed],
+          components: []
+        });
+      }
     }
   }
 
