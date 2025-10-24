@@ -260,7 +260,7 @@ export class ApiClient {
   }
 
   async getTodaySchedule(discordId: string): Promise<{ today_scheduled_type: 'workout' | 'rest' | null; message?: string }> {
-    const endpoint = `/schedules/today?discord_id=${discordId}`;
+    const endpoint = `/discord/schedule/today?discord_id=${discordId}`;
     logger.info(`API Call: GET ${endpoint}`);
     const result = await this.apiCall<{ today_scheduled_type: 'workout' | 'rest' | null; message?: string }>('GET', endpoint);
     logger.info(`Today schedule API result:`, JSON.stringify(result, null, 2));
@@ -276,14 +276,14 @@ export class ApiClient {
     reminder_time?: string;
     rest_days_allowed?: boolean;
   }): Promise<{ schedule: any; today_scheduled_type: 'workout' | 'rest' | null; message: string }> {
-    logger.info(`API Call: POST /schedules/flexible with data:`, JSON.stringify(data, null, 2));
-    const result = await this.apiCall<{ schedule: any; today_scheduled_type: 'workout' | 'rest' | null; message: string }>('POST', '/schedules/flexible', data);
+    logger.info(`API Call: POST /discord/schedule with data:`, JSON.stringify(data, null, 2));
+    const result = await this.apiCall<{ schedule: any; today_scheduled_type: 'workout' | 'rest' | null; message: string }>('POST', '/discord/schedule', data);
     logger.info(`Flexible schedule API result:`, JSON.stringify(result, null, 2));
     return result;
   }
 
   async getSchedule(discordId: string): Promise<any> {
-    const endpoint = `/schedules?discord_id=${discordId}`;
+    const endpoint = `/discord/schedule?discord_id=${discordId}`;
     logger.info(`API Call: GET ${endpoint}`);
     const result = await this.apiCall<any>('GET', endpoint);
     logger.info(`Schedule API result:`, JSON.stringify(result, null, 2));
