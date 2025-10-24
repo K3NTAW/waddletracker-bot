@@ -7,10 +7,12 @@ export class ProfileHandler implements CommandHandler {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     // Defer reply immediately to prevent timeout
     await interaction.deferReply();
+    logger.info('Profile command deferred successfully');
     
     try {
       const targetUserId = getTargetUserId(interaction);
       const isSelf = targetUserId === interaction.user.id;
+      logger.info(`Target user ID: ${targetUserId}, isSelf: ${isSelf}`);
 
       try {
         // Get profile embed from API
