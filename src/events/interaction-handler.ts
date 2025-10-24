@@ -25,17 +25,20 @@ export class InteractionHandler {
     } catch (error) {
       logger.error('Interaction handler error:', error);
       
-      const embed = createErrorEmbed(
-        'Interaction Error',
-        'An error occurred while processing your interaction. Please try again.'
-      );
-
-      if (interaction.isRepliable()) {
-        if (interaction.replied || interaction.deferred) {
-          await interaction.followUp({ embeds: [embed], ephemeral: true });
-        } else {
+      // Only try to reply if the interaction hasn't been handled yet
+      if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
+        try {
+          const embed = createErrorEmbed(
+            'Interaction Error',
+            'An error occurred while processing your interaction. Please try again.'
+          );
+          
           await interaction.reply({ embeds: [embed], ephemeral: true });
+        } catch (replyError) {
+          logger.error('Failed to send interaction error reply:', replyError);
         }
+      } else {
+        logger.warn('Cannot reply to interaction - already handled or not repliable');
       }
     }
   }
