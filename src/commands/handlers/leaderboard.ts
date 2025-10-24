@@ -5,7 +5,6 @@ import { apiClient } from '../../services/api-client';
 export class LeaderboardHandler implements CommandHandler {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     try {
-      await interaction.deferReply();
 
       const subcommand = interaction.options.getSubcommand();
       const limit = interaction.options.getInteger('limit') || 10;

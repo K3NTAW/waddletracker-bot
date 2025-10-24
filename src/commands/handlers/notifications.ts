@@ -10,7 +10,6 @@ export class NotificationsHandler implements CommandHandler {
       const userId = getUserId(interaction);
 
       if (subcommand === 'view') {
-        await interaction.deferReply({ ephemeral: true });
 
         const type = interaction.options.getString('type') || 'all';
         const unreadOnly = interaction.options.getBoolean('unread_only') || false;
@@ -86,7 +85,6 @@ export class NotificationsHandler implements CommandHandler {
         }
 
       } else if (subcommand === 'mark_read') {
-        await interaction.deferReply({ ephemeral: true });
 
         const notificationIds = interaction.options.getString('notification_ids');
         

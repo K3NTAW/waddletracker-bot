@@ -5,7 +5,6 @@ import { apiClient } from '../../services/api-client';
 export class AnalyticsHandler implements CommandHandler {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     try {
-      await interaction.deferReply({ ephemeral: true });
 
       const userId = getUserId(interaction);
       const period = interaction.options.getInteger('period') || 30;

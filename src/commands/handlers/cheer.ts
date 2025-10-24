@@ -5,8 +5,6 @@ import { ValidationError } from '../../types';
 
 export class CheerHandler implements CommandHandler {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    // Defer reply immediately to prevent timeout
-    await interaction.deferReply();
     
     try {
       const targetUserId = getTargetUserId(interaction);

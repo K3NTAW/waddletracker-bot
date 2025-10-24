@@ -17,7 +17,7 @@ export class InteractionHandler {
     // Defer immediately for slash commands to prevent timeout
     if (interaction.isChatInputCommand()) {
       try {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: 64 }); // 64 = EPHEMERAL flag
         logger.info(`Interaction deferred for command: ${interaction.commandName}`);
       } catch (deferError) {
         logger.error('Failed to defer interaction:', deferError);

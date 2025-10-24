@@ -4,7 +4,6 @@ import { CommandHandler, createInfoEmbed, handleApiError } from './index';
 export class HelpHandler implements CommandHandler {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     try {
-      await interaction.deferReply({ ephemeral: true });
 
       const command = interaction.options.getString('command');
 

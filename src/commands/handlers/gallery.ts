@@ -5,7 +5,6 @@ import { apiClient } from '../../services/api-client';
 export class GalleryHandler implements CommandHandler {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     try {
-      await interaction.deferReply();
 
       const targetUserId = getTargetUserId(interaction);
       const status = interaction.options.getString('status') || 'all';
