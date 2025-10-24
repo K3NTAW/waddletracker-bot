@@ -37,13 +37,30 @@ export class ProfileHandler implements CommandHandler {
           embed.addFields(embedData.fields);
         } else {
           // If no fields from API, show a message about no data
-          embed.addFields({
-            name: '📊 Profile Status',
-            value: isSelf 
-              ? 'Your profile data is not available yet. Try checking in first!'
-              : 'This user\'s profile data is not available yet.',
-            inline: false
-          });
+          embed.addFields(
+            {
+              name: '📊 Current Streak',
+              value: '0 days',
+              inline: true
+            },
+            {
+              name: '🏆 Longest Streak', 
+              value: '0 days',
+              inline: true
+            },
+            {
+              name: '📈 Total Check-ins',
+              value: '0',
+              inline: true
+            },
+            {
+              name: '📊 Profile Status',
+              value: isSelf 
+                ? 'Your profile data is not available yet. Try checking in first!'
+                : 'This user\'s profile data is not available yet.',
+              inline: false
+            }
+          );
         }
 
         // Add footer if it exists

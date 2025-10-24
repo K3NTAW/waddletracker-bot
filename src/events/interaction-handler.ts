@@ -44,6 +44,7 @@ export class InteractionHandler {
   }
 
   private async handleSlashCommand(interaction: any): Promise<void> {
+    const startTime = Date.now();
     const commandName = interaction.commandName;
     const handler = commandHandlers.get(commandName);
 
@@ -52,8 +53,17 @@ export class InteractionHandler {
       return;
     }
 
-    logger.info(`Executing command: ${commandName} by ${interaction.user.tag}`);
-    await handler.execute(interaction);
+    logger.info(`Executing command: ${commandName} by ${interaction.user.tag} at ${new Date().toISOString()}`);
+    
+    try {
+      await handler.execute(interaction);
+      const duration = Date.now() - startTime;
+      logger.info(`Command ${commandName} completed in ${duration}ms`);
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      logger.error(`Command ${commandName} failed after ${duration}ms:`, error);
+      throw error;
+    }
   }
 
   private async handleButtonInteraction(interaction: ButtonInteraction): Promise<void> {
