@@ -25,16 +25,17 @@ export class CheerHandler implements CommandHandler {
       }
 
       try {
-        // Try to send cheer
-        const cheerData = await apiClient.sendCheer({
-          to_user_id: targetUserId,
+        // Try to send cheer using Discord-specific endpoint
+        const cheerData = await apiClient.getCheerEmbed({
+          from_discord_id: interaction.user.id,
+          to_discord_id: targetUserId,
           message: message
-        }, 'discord-token'); // TODO: Get proper token
+        });
 
         const embed = new EmbedBuilder()
-          .setColor(0x00ff00)
-          .setTitle('🎉 Cheer Sent!')
-          .setDescription(
+          .setColor(cheerData.embed.color || 0x00ff00)
+          .setTitle(cheerData.embed.title || '🎉 Cheer Sent!')
+          .setDescription(cheerData.embed.description || 
             `**From:** <@${interaction.user.id}>\n` +
             `**To:** <@${targetUserId}>\n` +
             `**Message:** ${message}`
