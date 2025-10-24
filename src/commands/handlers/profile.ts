@@ -18,7 +18,7 @@ export class ProfileHandler implements CommandHandler {
         // Get profile embed from API
         logger.info(`Fetching profile for Discord ID: ${targetUserId}`);
         const embedData = await apiClient.getProfileEmbed(targetUserId);
-        logger.info(`Profile API response:`, JSON.stringify(embedData, null, 2));
+        logger.info(`Profile API response for user ${targetUserId}:`, JSON.stringify(embedData, null, 2));
         
         const embed = new EmbedBuilder()
           .setColor(embedData.color || 0x0099ff)
@@ -51,6 +51,8 @@ export class ProfileHandler implements CommandHandler {
               username: interaction.user.username,
               avatar_url: interaction.user.displayAvatarURL()
             });
+            
+            logger.info(`Registration embed API response:`, JSON.stringify(registerEmbedData, null, 2));
 
           const embed = new EmbedBuilder()
             .setColor(registerEmbedData.color || 0xffa500)
