@@ -70,14 +70,37 @@ export class CheckinHandler implements CommandHandler {
 
         await interaction.editReply({ embeds: [embed] });
 
-      } catch (apiError) {
-        // If user doesn't exist, show registration embed with button
-        try {
-          const registerEmbedData = await apiClient.getRegisterEmbed({
-            discord_id: userId,
-            username: interaction.user.username,
-            avatar_url: interaction.user.displayAvatarURL()
-          });
+      } catch (apiError: any) {
+        logger.error('Check-in API error:', apiError);
+        
+        // Handle different types of API errors
+        if (apiError.statusCode === 400 && apiError.message?.includes('already checked in')) {
+          // User has already checked in today
+          const embed = new EmbedBuilder()
+            .setColor(0xffa500)
+            .setTitle('⏰ Already Checked In!')
+            .setDescription(`**User:** <@${userId}>\n\nYou've already logged a check-in for today. Come back tomorrow!`)
+            .addFields({
+              name: '💡 Tip',
+              value: 'You can only check in once per day. Try again tomorrow!',
+              inline: false
+            })
+            .setThumbnail(interaction.user.displayAvatarURL())
+            .setTimestamp();
+          
+          await interaction.editReply({ embeds: [embed] });
+          return;
+        }
+        
+        // If user doesn't exist or other registration-related errors, show registration embed
+        if (apiError.statusCode === 404 || 
+            (apiError.statusCode === 400 && (apiError.message?.includes('not registered') || apiError.message?.includes('User not found')))) {
+          try {
+            const registerEmbedData = await apiClient.getRegisterEmbed({
+              discord_id: userId,
+              username: interaction.user.username,
+              avatar_url: interaction.user.displayAvatarURL()
+            });
 
           const embed = new EmbedBuilder()
             .setColor(registerEmbedData.color || 0xffa500)
@@ -153,6 +176,30 @@ export class CheckinHandler implements CommandHandler {
             embeds: [embed], 
             components: [row] 
           });
+        }
+        } else {
+          // Handle other API errors
+          const embed = new EmbedBuilder()
+            .setColor(0xff0000)
+            .setTitle('❌ Check-in Error')
+            .setDescription(
+              `**User:** <@${userId}>\n\n` +
+              `Unable to log your check-in. This could be due to:\n` +
+              `• Network connectivity issues\n` +
+              `• Server maintenance\n` +
+              `• Account synchronization delay\n\n` +
+              `**Error:** ${apiError.message || 'Unknown error'}\n\n` +
+              `Please try again in a few moments. If the problem persists, contact support.`
+            )
+            .addFields({
+              name: '🔧 Troubleshooting',
+              value: '• Try `/checkin` again in a few seconds\n• Check if other commands work\n• Contact support if the issue continues',
+              inline: false
+            })
+            .setThumbnail(interaction.user.displayAvatarURL())
+            .setTimestamp();
+          
+          await interaction.editReply({ embeds: [embed] });
         }
       }
 
