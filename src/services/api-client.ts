@@ -225,7 +225,16 @@ export class ApiClient {
     username: string;
     avatar_url?: string;
   }): Promise<{ success: boolean; user_id: string; message: string }> {
-    return this.apiCall<{ success: boolean; user_id: string; message: string }>('POST', '/discord/register', data);
+    const response = await this.apiCall<{
+      user: { id: string };
+      message: string;
+    }>('POST', '/discord/register', data);
+    
+    return {
+      success: true,
+      user_id: response.user.id,
+      message: response.message
+    };
   }
 
   async getCheerEmbed(data: {

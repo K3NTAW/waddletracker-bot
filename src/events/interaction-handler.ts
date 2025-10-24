@@ -202,13 +202,18 @@ export class InteractionHandler {
       const userId = customId.replace('register_', '');
 
       // Register the user
-      const result = await apiClient.registerUser({
-        discord_id: userId,
-        username: interaction.user.username,
-        avatar_url: interaction.user.displayAvatarURL()
-      });
+      try {
+        const registrationData = {
+          discord_id: userId,
+          username: interaction.user.username,
+          avatar_url: interaction.user.displayAvatarURL()
+        };
+        
+        logger.info('Registration data:', registrationData);
+        const result = await apiClient.registerUser(registrationData);
+        logger.info('Registration result:', result);
 
-      if (result.success) {
+        if (result.success) {
         const embed = new EmbedBuilder()
           .setColor(0x00ff00)
           .setTitle('🎉 Welcome to WaddleTracker!')
@@ -244,6 +249,47 @@ export class InteractionHandler {
           embeds: [embed],
           components: []
         });
+      }
+      } catch (apiError: any) {
+        // Handle case where API returns 400 but user is actually registered
+        if (apiError.statusCode === 400 && apiError.message?.includes('registered successfully')) {
+          const embed = new EmbedBuilder()
+            .setColor(0x00ff00)
+            .setTitle('🎉 Welcome to WaddleTracker!')
+            .setDescription(
+              `**User:** <@${userId}>\n\n` +
+              `Congratulations! You've been successfully registered with WaddleTracker.\n` +
+              `You can now use all bot features!`
+            )
+            .addFields({
+              name: '🚀 What\'s Next?',
+              value: '• Use `/checkin` to log your gym sessions\n• Try `/profile` to see your stats\n• Use `/streak` to track your progress\n• Send `/cheer` to motivate friends!',
+              inline: false
+            })
+            .setThumbnail(interaction.user.displayAvatarURL())
+            .setTimestamp();
+
+          await interaction.editReply({
+            embeds: [embed],
+            components: []
+          });
+        } else {
+          // Handle other errors
+          const embed = new EmbedBuilder()
+            .setColor(0xff0000)
+            .setTitle('❌ Registration Error')
+            .setDescription(
+              `**User:** <@${userId}>\n\n` +
+              `Registration failed: ${apiError.message || 'Unknown error'}\n` +
+              `Please try again or contact support if the issue persists.`
+            )
+            .setTimestamp();
+
+          await interaction.editReply({
+            embeds: [embed],
+            components: []
+          });
+        }
       }
     } catch (error: any) {
       logger.error('Registration error:', error);
