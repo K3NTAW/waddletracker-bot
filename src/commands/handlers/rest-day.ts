@@ -5,14 +5,6 @@ import logger from '../../utils/logger';
 
 export class RestDayHandler implements CommandHandler {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    // Defer reply immediately to prevent timeout
-    try {
-      await interaction.deferReply({ ephemeral: true });
-    } catch (deferError) {
-      logger.error('Failed to defer rest-day command:', deferError);
-      return; // Can't continue without deferring
-    }
-
     try {
       const userId = getUserId(interaction);
       const notes = interaction.options.getString('notes');

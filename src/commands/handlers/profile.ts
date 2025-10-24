@@ -5,15 +5,6 @@ import logger from '../../utils/logger';
 
 export class ProfileHandler implements CommandHandler {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    // Defer reply immediately to prevent timeout
-    try {
-      await interaction.deferReply({ ephemeral: true });
-      logger.info('Profile command deferred successfully');
-    } catch (deferError) {
-      logger.error('Failed to defer profile command:', deferError);
-      return; // Can't continue without deferring
-    }
-    
     try {
       const targetUserId = getTargetUserId(interaction);
       const isSelf = targetUserId === interaction.user.id;

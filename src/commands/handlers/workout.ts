@@ -5,14 +5,6 @@ import logger from '../../utils/logger';
 
 export class WorkoutHandler implements CommandHandler {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    // Defer reply immediately to prevent timeout
-    try {
-      await interaction.deferReply({ ephemeral: true });
-    } catch (deferError) {
-      logger.error('Failed to defer workout command:', deferError);
-      return; // Can't continue without deferring
-    }
-
     try {
       const userId = getUserId(interaction);
       const workoutType = interaction.options.getString('type', true);
