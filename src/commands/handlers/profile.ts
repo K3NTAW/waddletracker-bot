@@ -28,8 +28,17 @@ export class ProfileHandler implements CommandHandler {
           .setTimestamp();
 
         // Add fields if they exist
-        if (embedData.fields) {
+        if (embedData.fields && embedData.fields.length > 0) {
           embed.addFields(embedData.fields);
+        } else {
+          // If no fields from API, show a message about no data
+          embed.addFields({
+            name: '📊 Profile Status',
+            value: isSelf 
+              ? 'Your profile data is not available yet. Try checking in first!'
+              : 'This user\'s profile data is not available yet.',
+            inline: false
+          });
         }
 
         // Add footer if it exists
