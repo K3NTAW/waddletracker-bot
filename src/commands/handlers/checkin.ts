@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuil
 import { CommandHandler, createErrorEmbed, createSuccessEmbed, handleApiError, getUserId, createConfirmationButtons, getStatusEmoji, getStatusColor } from './index';
 import { apiClient } from '../../services/api-client';
 import { ValidationError } from '../../types';
+import logger from '../../utils/logger';
 
 export class CheckinHandler implements CommandHandler {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -148,8 +149,34 @@ export class CheckinHandler implements CommandHandler {
         }
       }
 
-    } catch (error) {
-      await handleApiError(interaction, error);
+    } catch (error: any) {
+      logger.error('Checkin command error:', error);
+      
+      try {
+        const embed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle('❌ Check-in Error')
+          .setDescription(
+            `Unable to log your check-in. This could be due to:\n` +
+            `• Network connectivity issues\n` +
+            `• Server maintenance\n` +
+            `• Account synchronization delay\n\n` +
+            `**Error:** ${error.message || 'Unknown error'}\n\n` +
+            `Please try again in a few moments. If the problem persists, contact support.`
+          )
+          .addFields({
+            name: '🔧 Troubleshooting',
+            value: '• Try `/checkin` again in a few seconds\n• Check if other commands work\n• Contact support if the issue continues',
+            inline: false
+          })
+          .setThumbnail(interaction.user.displayAvatarURL())
+          .setTimestamp();
+        
+        await interaction.editReply({ embeds: [embed] });
+      } catch (errorHandlingError) {
+        logger.error('Failed to send checkin error message:', errorHandlingError);
+        await handleApiError(interaction, error);
+      }
     }
   }
 

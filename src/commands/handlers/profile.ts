@@ -143,12 +143,38 @@ export class ProfileHandler implements CommandHandler {
         }
       }
 
-    } catch (error) {
+    } catch (error: any) {
+      logger.error('Profile command error:', error);
+      
+      const targetUserId = getTargetUserId(interaction);
+      
       // Since we already deferred, use editReply instead of reply
       try {
-        await handleApiError(interaction, error);
-      } catch (errorHandlingError) {
-        // If error handling fails, try to send a simple error message
+        const embed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle('❌ Profile Error')
+          .setDescription(
+            `**User:** <@${targetUserId}>\n\n` +
+            `Unable to load profile data. This could be due to:\n` +
+            `• Network connectivity issues\n` +
+            `• Server maintenance\n` +
+            `• Account synchronization delay\n\n` +
+            `**Error:** ${error.message || 'Unknown error'}\n\n` +
+            `Please try again in a few moments. If the problem persists, contact support.`
+          )
+          .addFields({
+            name: '🔧 Troubleshooting',
+            value: '• Try `/profile` again in a few seconds\n• Check if other commands work\n• Contact support if the issue continues',
+            inline: false
+          })
+          .setThumbnail(interaction.client.users.cache.get(targetUserId)?.displayAvatarURL() || interaction.user.displayAvatarURL())
+          .setTimestamp();
+        
+        await interaction.editReply({ embeds: [embed] });
+      } catch (finalError) {
+        logger.error('Failed to send error message:', finalError);
+        
+        // Last resort - try to send a simple error
         try {
           const embed = new EmbedBuilder()
             .setColor(0xff0000)
@@ -157,8 +183,8 @@ export class ProfileHandler implements CommandHandler {
             .setTimestamp();
           
           await interaction.editReply({ embeds: [embed] });
-        } catch (finalError) {
-          logger.error('Failed to send error message:', finalError);
+        } catch (lastError) {
+          logger.error('Complete failure to send error message:', lastError);
         }
       }
     }
