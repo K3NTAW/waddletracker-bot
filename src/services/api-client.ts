@@ -260,16 +260,32 @@ export class ApiClient {
   }
 
   async getTodaySchedule(discordId: string): Promise<{ today_scheduled_type: 'workout' | 'rest' | null; message?: string }> {
-    // For now, return a mock response since the Discord schedule endpoints don't exist yet
-    logger.info(`Mock API Call: GET /discord/schedule/today?discord_id=${discordId}`);
+    logger.info(`API Call: GET /schedules/today?discord_id=${discordId}`);
     
-    const mockResult = {
-      today_scheduled_type: 'workout' as 'workout' | 'rest' | null,
-      message: 'Today is a workout day! 💪 Time to hit the gym!'
-    };
+    // Use the original endpoint with bot authentication
+    const botToken = process.env.BOT_AUTH_TOKEN || 'bot-token-placeholder';
     
-    logger.info(`Mock today schedule API result:`, JSON.stringify(mockResult, null, 2));
-    return mockResult;
+    try {
+      const result = await this.apiCall<{ today_scheduled_type: 'workout' | 'rest' | null; message?: string }>(
+        'GET', 
+        `/schedules/today?discord_id=${discordId}`,
+        undefined,
+        { 'Authorization': `Bearer ${botToken}` }
+      );
+      logger.info(`Today schedule API result:`, JSON.stringify(result, null, 2));
+      return result;
+    } catch (error: any) {
+      // If authentication fails, fall back to a more helpful error message
+      if (error.statusCode === 401) {
+        logger.warn('Today schedule retrieval requires bot authentication token. Please set BOT_AUTH_TOKEN environment variable.');
+        throw new ApiError(
+          'Today schedule retrieval is not yet available. Please contact support to enable this feature.',
+          503,
+          '/schedules/today'
+        );
+      }
+      throw error;
+    }
   }
 
   async createFlexibleSchedule(data: {
@@ -281,47 +297,62 @@ export class ApiClient {
     reminder_time?: string;
     rest_days_allowed?: boolean;
   }): Promise<{ schedule: any; today_scheduled_type: 'workout' | 'rest' | null; message: string }> {
-    // For now, return a mock response since the Discord schedule endpoints don't exist yet
-    logger.info(`Mock API Call: POST /discord/schedule with data:`, JSON.stringify(data, null, 2));
+    logger.info(`API Call: POST /schedules/flexible with data:`, JSON.stringify(data, null, 2));
     
-    const mockResult = {
-      schedule: {
-        id: 'mock-schedule-id',
-        discord_id: data.discord_id,
-        schedule_type: data.schedule_type,
-        rotation_pattern: data.rotation_pattern,
-        workout_days: data.workout_days,
-        timezone: data.timezone || 'UTC',
-        reminder_time: data.reminder_time || '09:00',
-        rest_days_allowed: data.rest_days_allowed || true,
-        created_at: new Date().toISOString()
-      },
-      today_scheduled_type: data.schedule_type === 'rotating' ? 'workout' : 'workout' as 'workout' | 'rest' | null,
-      message: `✅ ${data.schedule_type === 'rotating' ? 'Rotation' : 'Weekly'} schedule created successfully!`
-    };
+    // Use the original endpoint with bot authentication
+    // For now, we'll use a placeholder token - in production this should be a proper bot token
+    const botToken = process.env.BOT_AUTH_TOKEN || 'bot-token-placeholder';
     
-    logger.info(`Mock flexible schedule API result:`, JSON.stringify(mockResult, null, 2));
-    return mockResult;
+    try {
+      const result = await this.apiCall<{ schedule: any; today_scheduled_type: 'workout' | 'rest' | null; message: string }>(
+        'POST', 
+        '/schedules/flexible', 
+        data,
+        { 'Authorization': `Bearer ${botToken}` }
+      );
+      logger.info(`Flexible schedule API result:`, JSON.stringify(result, null, 2));
+      return result;
+    } catch (error: any) {
+      // If authentication fails, fall back to a more helpful error message
+      if (error.statusCode === 401) {
+        logger.warn('Schedule creation requires bot authentication token. Please set BOT_AUTH_TOKEN environment variable.');
+        throw new ApiError(
+          'Schedule creation is not yet available. Please contact support to enable this feature.',
+          503,
+          '/schedules/flexible'
+        );
+      }
+      throw error;
+    }
   }
 
   async getSchedule(discordId: string): Promise<any> {
-    // For now, return a mock response since the Discord schedule endpoints don't exist yet
-    logger.info(`Mock API Call: GET /discord/schedule?discord_id=${discordId}`);
+    logger.info(`API Call: GET /schedules?discord_id=${discordId}`);
     
-    const mockResult = {
-      id: 'mock-schedule-id',
-      discord_id: discordId,
-      schedule_type: 'rotating',
-      rotation_pattern: 'upper,lower,rest,upper,lower,rest,rest',
-      workout_days: ['Monday', 'Wednesday', 'Friday'],
-      timezone: 'UTC',
-      reminder_time: '09:00',
-      rest_days_allowed: true,
-      created_at: new Date().toISOString()
-    };
+    // Use the original endpoint with bot authentication
+    const botToken = process.env.BOT_AUTH_TOKEN || 'bot-token-placeholder';
     
-    logger.info(`Mock schedule API result:`, JSON.stringify(mockResult, null, 2));
-    return mockResult;
+    try {
+      const result = await this.apiCall<any>(
+        'GET', 
+        `/schedules?discord_id=${discordId}`,
+        undefined,
+        { 'Authorization': `Bearer ${botToken}` }
+      );
+      logger.info(`Schedule API result:`, JSON.stringify(result, null, 2));
+      return result;
+    } catch (error: any) {
+      // If authentication fails, fall back to a more helpful error message
+      if (error.statusCode === 401) {
+        logger.warn('Schedule retrieval requires bot authentication token. Please set BOT_AUTH_TOKEN environment variable.');
+        throw new ApiError(
+          'Schedule retrieval is not yet available. Please contact support to enable this feature.',
+          503,
+          '/schedules'
+        );
+      }
+      throw error;
+    }
   }
 
   async getCheerEmbed(data: {
