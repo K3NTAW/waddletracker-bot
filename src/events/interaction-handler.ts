@@ -181,15 +181,15 @@ export class InteractionHandler {
       
       const userId = interaction.user.id;
       
-      // TODO: Add API call to delete schedule
-      // await apiClient.deleteSchedule(userId);
+      // Call the real API to delete the schedule
+      const result = await apiClient.deleteSchedule(userId);
       
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
         .setTitle('✅ Schedule Deleted')
         .setDescription(
           `**User:** <@${userId}>\n\n` +
-          `Your gym schedule has been successfully deleted.\n` +
+          `${result.message}\n` +
           `You can create a new schedule anytime using \`/schedule rotation\` or \`/schedule weekly\`.`
         )
         .addFields({

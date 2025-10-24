@@ -16,6 +16,16 @@ export class ProfileHandler implements CommandHandler {
         const embedData = await apiClient.getProfileEmbed(targetUserId);
         logger.info(`Profile API response for user ${targetUserId}:`, JSON.stringify(embedData, null, 2));
         
+        // Get schedule information if available
+        let scheduleInfo = null;
+        let todaySchedule = null;
+        try {
+          scheduleInfo = await apiClient.getSchedule(targetUserId);
+          todaySchedule = await apiClient.getTodaySchedule(targetUserId);
+        } catch (error) {
+          logger.info(`No schedule found for user ${targetUserId}`);
+        }
+        
         const embed = new EmbedBuilder()
           .setColor(embedData.color || 0x0099ff)
           .setTitle(embedData.title || `🏋️ ${isSelf ? 'Your' : 'User'} Profile`)
@@ -26,6 +36,40 @@ export class ProfileHandler implements CommandHandler {
         // Add fields if they exist
         if (embedData.fields && embedData.fields.length > 0) {
           embed.addFields(embedData.fields);
+          
+          // Add schedule information if available
+          if (scheduleInfo) {
+            const scheduleType = scheduleInfo.schedule_type || 'Not set';
+            const schedulePattern = scheduleInfo.rotation_pattern || scheduleInfo.workout_days?.join(', ') || 'Not set';
+            const todayType = todaySchedule?.today_scheduled_type;
+            
+            let todayDisplay = 'No activity scheduled';
+            if (todayType === 'workout') {
+              todayDisplay = 'Workout Day 💪';
+            } else if (todayType === 'rest') {
+              todayDisplay = 'Rest Day 😴 (automatic)';
+            }
+            
+            embed.addFields(
+              {
+                name: '📅 Today\'s Schedule',
+                value: todayDisplay,
+                inline: true
+              },
+              {
+                name: '🔄 Schedule Type',
+                value: scheduleType === 'rotating' ? 'Rotation Pattern' : 
+                       scheduleType === 'weekly' ? 'Weekly Schedule' : 
+                       scheduleType === 'custom' ? 'Custom Schedule' : 'Not set',
+                inline: true
+              },
+              {
+                name: '📋 Schedule Pattern',
+                value: schedulePattern,
+                inline: true
+              }
+            );
+          }
         } else {
           // If no fields from API, show a message about no data
           embed.addFields(

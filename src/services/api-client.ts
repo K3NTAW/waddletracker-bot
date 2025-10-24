@@ -203,6 +203,38 @@ export class ApiClient {
     return response.embed;
   }
 
+  async deleteSchedule(discordId: string): Promise<{ message: string }> {
+    logger.info(`API Call: POST /discord/schedule (delete) for discord_id=${discordId}`);
+    
+    const botToken = process.env.BOT_AUTH_TOKEN;
+    if (!botToken) {
+      throw new ApiError(
+        'Bot authentication token not configured. Please set BOT_AUTH_TOKEN environment variable.',
+        500,
+        '/discord/schedule'
+      );
+    }
+    
+    const requestData = {
+      action: 'delete',
+      discord_id: discordId
+    };
+    
+    try {
+      const result = await this.apiCall<{ message: string }>(
+        'POST', 
+        '/discord/schedule',
+        requestData,
+        { 'X-Bot-Token': botToken }
+      );
+      logger.info(`Discord schedule delete API result:`, JSON.stringify(result, null, 2));
+      return result;
+    } catch (error: any) {
+      logger.error('Discord schedule delete error:', error);
+      throw error;
+    }
+  }
+
   async getCheckInEmbed(data: {
     user_id: string;
     checkin_id: string;
@@ -260,30 +292,33 @@ export class ApiClient {
   }
 
   async getTodaySchedule(discordId: string): Promise<{ today_scheduled_type: 'workout' | 'rest' | null; message?: string }> {
-    logger.info(`API Call: GET /schedules/today?discord_id=${discordId}`);
+    logger.info(`API Call: POST /discord/schedule (today) for discord_id=${discordId}`);
     
-    // Use the original endpoint with bot authentication
-    const botToken = process.env.BOT_AUTH_TOKEN || 'bot-token-placeholder';
+    const botToken = process.env.BOT_AUTH_TOKEN;
+    if (!botToken) {
+      throw new ApiError(
+        'Bot authentication token not configured. Please set BOT_AUTH_TOKEN environment variable.',
+        500,
+        '/discord/schedule'
+      );
+    }
+    
+    const requestData = {
+      action: 'today',
+      discord_id: discordId
+    };
     
     try {
       const result = await this.apiCall<{ today_scheduled_type: 'workout' | 'rest' | null; message?: string }>(
-        'GET', 
-        `/schedules/today?discord_id=${discordId}`,
-        undefined,
-        { 'Authorization': `Bearer ${botToken}` }
+        'POST', 
+        '/discord/schedule',
+        requestData,
+        { 'X-Bot-Token': botToken }
       );
-      logger.info(`Today schedule API result:`, JSON.stringify(result, null, 2));
+      logger.info(`Discord today schedule API result:`, JSON.stringify(result, null, 2));
       return result;
     } catch (error: any) {
-      // If authentication fails, fall back to a more helpful error message
-      if (error.statusCode === 401) {
-        logger.warn('Today schedule retrieval requires bot authentication token. Please set BOT_AUTH_TOKEN environment variable.');
-        throw new ApiError(
-          'Today schedule retrieval is not yet available. Please contact support to enable this feature.',
-          503,
-          '/schedules/today'
-        );
-      }
+      logger.error('Discord today schedule error:', error);
       throw error;
     }
   }
@@ -297,60 +332,71 @@ export class ApiClient {
     reminder_time?: string;
     rest_days_allowed?: boolean;
   }): Promise<{ schedule: any; today_scheduled_type: 'workout' | 'rest' | null; message: string }> {
-    logger.info(`API Call: POST /schedules/flexible with data:`, JSON.stringify(data, null, 2));
+    logger.info(`API Call: POST /discord/schedule with data:`, JSON.stringify(data, null, 2));
     
-    // Use the original endpoint with bot authentication
-    // For now, we'll use a placeholder token - in production this should be a proper bot token
-    const botToken = process.env.BOT_AUTH_TOKEN || 'bot-token-placeholder';
+    const botToken = process.env.BOT_AUTH_TOKEN;
+    if (!botToken) {
+      throw new ApiError(
+        'Bot authentication token not configured. Please set BOT_AUTH_TOKEN environment variable.',
+        500,
+        '/discord/schedule'
+      );
+    }
+    
+    const requestData = {
+      action: 'create',
+      discord_id: data.discord_id,
+      schedule_type: data.schedule_type,
+      rotation_pattern: data.rotation_pattern,
+      workout_days: data.workout_days,
+      timezone: data.timezone || 'UTC',
+      reminder_time: data.reminder_time || '09:00',
+      rest_days_allowed: data.rest_days_allowed !== false
+    };
     
     try {
       const result = await this.apiCall<{ schedule: any; today_scheduled_type: 'workout' | 'rest' | null; message: string }>(
         'POST', 
-        '/schedules/flexible', 
-        data,
-        { 'Authorization': `Bearer ${botToken}` }
+        '/discord/schedule', 
+        requestData,
+        { 'X-Bot-Token': botToken }
       );
-      logger.info(`Flexible schedule API result:`, JSON.stringify(result, null, 2));
+      logger.info(`Discord schedule API result:`, JSON.stringify(result, null, 2));
       return result;
     } catch (error: any) {
-      // If authentication fails, fall back to a more helpful error message
-      if (error.statusCode === 401) {
-        logger.warn('Schedule creation requires bot authentication token. Please set BOT_AUTH_TOKEN environment variable.');
-        throw new ApiError(
-          'Schedule creation is not yet available. Please contact support to enable this feature.',
-          503,
-          '/schedules/flexible'
-        );
-      }
+      logger.error('Discord schedule creation error:', error);
       throw error;
     }
   }
 
   async getSchedule(discordId: string): Promise<any> {
-    logger.info(`API Call: GET /schedules?discord_id=${discordId}`);
+    logger.info(`API Call: POST /discord/schedule (get) for discord_id=${discordId}`);
     
-    // Use the original endpoint with bot authentication
-    const botToken = process.env.BOT_AUTH_TOKEN || 'bot-token-placeholder';
+    const botToken = process.env.BOT_AUTH_TOKEN;
+    if (!botToken) {
+      throw new ApiError(
+        'Bot authentication token not configured. Please set BOT_AUTH_TOKEN environment variable.',
+        500,
+        '/discord/schedule'
+      );
+    }
+    
+    const requestData = {
+      action: 'get',
+      discord_id: discordId
+    };
     
     try {
       const result = await this.apiCall<any>(
-        'GET', 
-        `/schedules?discord_id=${discordId}`,
-        undefined,
-        { 'Authorization': `Bearer ${botToken}` }
+        'POST', 
+        '/discord/schedule',
+        requestData,
+        { 'X-Bot-Token': botToken }
       );
-      logger.info(`Schedule API result:`, JSON.stringify(result, null, 2));
+      logger.info(`Discord schedule get API result:`, JSON.stringify(result, null, 2));
       return result;
     } catch (error: any) {
-      // If authentication fails, fall back to a more helpful error message
-      if (error.statusCode === 401) {
-        logger.warn('Schedule retrieval requires bot authentication token. Please set BOT_AUTH_TOKEN environment variable.');
-        throw new ApiError(
-          'Schedule retrieval is not yet available. Please contact support to enable this feature.',
-          503,
-          '/schedules'
-        );
-      }
+      logger.error('Discord schedule get error:', error);
       throw error;
     }
   }

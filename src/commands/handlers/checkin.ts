@@ -7,13 +7,61 @@ import logger from '../../utils/logger';
 export class CheckinHandler implements CommandHandler {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     try {
+      const userId = getUserId(interaction);
+      const now = new Date().toISOString();
 
-      const status = interaction.options.getString('status', true) as 'went' | 'missed';
+      // First, check if user has a schedule and what today's type is
+      let todaySchedule = null;
+      try {
+        todaySchedule = await apiClient.getTodaySchedule(userId);
+      } catch (error) {
+        logger.info(`No schedule found for user ${userId}, proceeding with manual check-in`);
+      }
+
+      // Smart check-in logic based on schedule
+      if (todaySchedule?.today_scheduled_type === 'rest') {
+        // Today is a scheduled rest day - show rest day message
+        const embed = new EmbedBuilder()
+          .setColor(0xffa500) // Orange for rest days
+          .setTitle('😴 Rest Day Scheduled!')
+          .setDescription(
+            `**User:** <@${userId}>\n\n` +
+            `Today is a scheduled rest day - no check-in needed!\n` +
+            `Your streak continues automatically. Enjoy your recovery! 💤`
+          )
+          .addFields(
+            {
+              name: '📅 Today\'s Schedule',
+              value: 'Rest Day (automatic)',
+              inline: true
+            },
+            {
+              name: '🔥 Streak Status',
+              value: 'Continues automatically with rest day',
+              inline: true
+            },
+            {
+              name: '💡 What This Means',
+              value: 'Rest is part of your fitness journey! Your streak won\'t break on scheduled rest days.',
+              inline: false
+            }
+          )
+          .setThumbnail(interaction.user.displayAvatarURL())
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      }
+
+      // Get user input for check-in
+      const status = interaction.options.getString('status', true) as 'went' | 'missed' | 'rest';
+      const workoutType = interaction.options.getString('workout_type');
+      const notes = interaction.options.getString('notes');
       const photoUrl = interaction.options.getString('photo_url');
 
       // Validate status
-      if (!['went', 'missed'].includes(status)) {
-        throw new ValidationError('Status must be either "went" or "missed"');
+      if (!['went', 'missed', 'rest'].includes(status)) {
+        throw new ValidationError('Status must be "went", "missed", or "rest"');
       }
 
       // Validate photo URL if provided
@@ -21,24 +69,15 @@ export class CheckinHandler implements CommandHandler {
         throw new ValidationError('Invalid photo URL format');
       }
 
-      const userId = getUserId(interaction);
-      const now = new Date().toISOString();
-
-      // Create check-in data
-      const checkInData = {
-        date: now,
-        status,
-        photo_url: photoUrl || undefined,
-        discord_message_id: interaction.id // Use interaction ID as message ID
-      };
-
       try {
-        // Try to log check-in first
+        // Log the check-in with the new rest day support
         const embedData = await apiClient.logCheckin({
           discord_id: userId,
           username: interaction.user.username,
           avatar_url: interaction.user.displayAvatarURL(),
           status,
+          workout_type: workoutType || undefined,
+          notes: notes || undefined,
           photo_url: photoUrl || undefined,
           date: now
         });
