@@ -24,7 +24,7 @@ export class ApiClient {
     this.baseUrl = config.apiBaseUrl;
     this.client = axios.create({
       baseURL: this.baseUrl,
-      timeout: 10000,
+      timeout: 5000, // Reduced from 10000 to 5000ms
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'WaddleTracker-Discord-Bot/1.0.0'

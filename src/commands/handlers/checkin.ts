@@ -10,12 +10,17 @@ export class CheckinHandler implements CommandHandler {
       const userId = getUserId(interaction);
       const now = new Date().toISOString();
 
-      // First, check if user has a schedule and what today's type is
+      // First, check if user has a schedule and what today's type is (with timeout)
       let todaySchedule = null;
       try {
-        todaySchedule = await apiClient.getTodaySchedule(userId);
-      } catch (error) {
-        logger.info(`No schedule found for user ${userId}, proceeding with manual check-in`);
+        todaySchedule = await Promise.race([
+          apiClient.getTodaySchedule(userId),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Schedule API timeout')), 1000)
+          )
+        ]) as any;
+      } catch (error: any) {
+        logger.info(`No schedule found for user ${userId} or timeout, proceeding with manual check-in:`, error.message);
       }
 
       // Smart check-in logic based on schedule

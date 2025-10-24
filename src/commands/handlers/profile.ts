@@ -11,19 +11,33 @@ export class ProfileHandler implements CommandHandler {
       logger.info(`Target user ID: ${targetUserId}, isSelf: ${isSelf}`);
 
       try {
-        // Get profile embed from API
+        // Get profile embed from API with timeout
         logger.info(`Fetching profile for Discord ID: ${targetUserId}`);
-        const embedData = await apiClient.getProfileEmbed(targetUserId);
+        const embedData = await Promise.race([
+          apiClient.getProfileEmbed(targetUserId),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Profile API timeout')), 2000)
+          )
+        ]) as any;
         logger.info(`Profile API response for user ${targetUserId}:`, JSON.stringify(embedData, null, 2));
         
-        // Get schedule information if available
+        // Get schedule information if available (with timeout)
         let scheduleInfo = null;
         let todaySchedule = null;
         try {
-          scheduleInfo = await apiClient.getSchedule(targetUserId);
-          todaySchedule = await apiClient.getTodaySchedule(targetUserId);
-        } catch (error) {
-          logger.info(`No schedule found for user ${targetUserId}`);
+          const schedulePromise = Promise.race([
+            Promise.all([
+              apiClient.getSchedule(targetUserId),
+              apiClient.getTodaySchedule(targetUserId)
+            ]),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Schedule API timeout')), 1500)
+            )
+          ]) as any;
+          
+          [scheduleInfo, todaySchedule] = await schedulePromise;
+        } catch (error: any) {
+          logger.info(`No schedule found for user ${targetUserId} or timeout:`, error.message);
         }
         
         const embed = new EmbedBuilder()
