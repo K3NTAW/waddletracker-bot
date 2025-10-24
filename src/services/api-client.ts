@@ -292,7 +292,7 @@ export class ApiClient {
   }
 
   async getTodaySchedule(discordId: string): Promise<{ today_scheduled_type: 'workout' | 'rest' | null; message?: string }> {
-    logger.info(`API Call: POST /discord/schedule (today) for discord_id=${discordId}`);
+    logger.info(`API Call: POST /discord/schedule (get today) for discord_id=${discordId}`);
     
     const botToken = process.env.BOT_AUTH_TOKEN;
     if (!botToken) {
@@ -304,8 +304,9 @@ export class ApiClient {
     }
     
     const requestData = {
-      action: 'today',
-      discord_id: discordId
+      action: 'get',
+      discord_id: discordId,
+      type: 'today'
     };
     
     try {
