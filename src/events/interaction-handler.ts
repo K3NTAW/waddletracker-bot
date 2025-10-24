@@ -245,7 +245,6 @@ export class InteractionHandler {
           components: []
         });
       }
-
     } catch (error: any) {
       logger.error('Registration error:', error);
       
