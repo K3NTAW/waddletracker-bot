@@ -86,11 +86,21 @@ process.on('SIGTERM', () => {
 });
 
 // Login to Discord
+logger.info('Attempting to login to Discord...');
+logger.info('Discord token exists:', !!config.discordToken);
+logger.info('API base URL:', config.apiBaseUrl);
+
 client.login(config.discordToken).then(() => {
+  logger.info('Discord login successful!');
   // Start scheduler after successful login
   scheduler.start();
 }).catch((error) => {
-  logger.error('Failed to login:', error);
+  logger.error('Failed to login to Discord:', error);
+  logger.error('Error details:', {
+    message: error.message,
+    code: error.code,
+    status: error.status
+  });
   process.exit(1);
 });
 
