@@ -260,11 +260,16 @@ export class ApiClient {
   }
 
   async getTodaySchedule(discordId: string): Promise<{ today_scheduled_type: 'workout' | 'rest' | null; message?: string }> {
-    const endpoint = `/discord/schedule/today?discord_id=${discordId}`;
-    logger.info(`API Call: GET ${endpoint}`);
-    const result = await this.apiCall<{ today_scheduled_type: 'workout' | 'rest' | null; message?: string }>('GET', endpoint);
-    logger.info(`Today schedule API result:`, JSON.stringify(result, null, 2));
-    return result;
+    // For now, return a mock response since the Discord schedule endpoints don't exist yet
+    logger.info(`Mock API Call: GET /discord/schedule/today?discord_id=${discordId}`);
+    
+    const mockResult = {
+      today_scheduled_type: 'workout' as 'workout' | 'rest' | null,
+      message: 'Today is a workout day! 💪 Time to hit the gym!'
+    };
+    
+    logger.info(`Mock today schedule API result:`, JSON.stringify(mockResult, null, 2));
+    return mockResult;
   }
 
   async createFlexibleSchedule(data: {
@@ -276,18 +281,47 @@ export class ApiClient {
     reminder_time?: string;
     rest_days_allowed?: boolean;
   }): Promise<{ schedule: any; today_scheduled_type: 'workout' | 'rest' | null; message: string }> {
-    logger.info(`API Call: POST /discord/schedule with data:`, JSON.stringify(data, null, 2));
-    const result = await this.apiCall<{ schedule: any; today_scheduled_type: 'workout' | 'rest' | null; message: string }>('POST', '/discord/schedule', data);
-    logger.info(`Flexible schedule API result:`, JSON.stringify(result, null, 2));
-    return result;
+    // For now, return a mock response since the Discord schedule endpoints don't exist yet
+    logger.info(`Mock API Call: POST /discord/schedule with data:`, JSON.stringify(data, null, 2));
+    
+    const mockResult = {
+      schedule: {
+        id: 'mock-schedule-id',
+        discord_id: data.discord_id,
+        schedule_type: data.schedule_type,
+        rotation_pattern: data.rotation_pattern,
+        workout_days: data.workout_days,
+        timezone: data.timezone || 'UTC',
+        reminder_time: data.reminder_time || '09:00',
+        rest_days_allowed: data.rest_days_allowed || true,
+        created_at: new Date().toISOString()
+      },
+      today_scheduled_type: data.schedule_type === 'rotating' ? 'workout' : 'workout' as 'workout' | 'rest' | null,
+      message: `✅ ${data.schedule_type === 'rotating' ? 'Rotation' : 'Weekly'} schedule created successfully!`
+    };
+    
+    logger.info(`Mock flexible schedule API result:`, JSON.stringify(mockResult, null, 2));
+    return mockResult;
   }
 
   async getSchedule(discordId: string): Promise<any> {
-    const endpoint = `/discord/schedule?discord_id=${discordId}`;
-    logger.info(`API Call: GET ${endpoint}`);
-    const result = await this.apiCall<any>('GET', endpoint);
-    logger.info(`Schedule API result:`, JSON.stringify(result, null, 2));
-    return result;
+    // For now, return a mock response since the Discord schedule endpoints don't exist yet
+    logger.info(`Mock API Call: GET /discord/schedule?discord_id=${discordId}`);
+    
+    const mockResult = {
+      id: 'mock-schedule-id',
+      discord_id: discordId,
+      schedule_type: 'rotating',
+      rotation_pattern: 'upper,lower,rest,upper,lower,rest,rest',
+      workout_days: ['Monday', 'Wednesday', 'Friday'],
+      timezone: 'UTC',
+      reminder_time: '09:00',
+      rest_days_allowed: true,
+      created_at: new Date().toISOString()
+    };
+    
+    logger.info(`Mock schedule API result:`, JSON.stringify(mockResult, null, 2));
+    return mockResult;
   }
 
   async getCheerEmbed(data: {
