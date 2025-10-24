@@ -395,7 +395,16 @@ export class ApiClient {
         { 'X-Bot-Token': botToken }
       );
       logger.info(`Discord schedule get API result:`, JSON.stringify(result, null, 2));
-      return result;
+      
+      // Check if the result has the expected structure
+      if (result && result.schedule) {
+        return result.schedule;
+      } else if (result && result.data && result.data.schedule) {
+        return result.data.schedule;
+      } else {
+        logger.warn('Unexpected schedule API response structure:', result);
+        return result;
+      }
     } catch (error: any) {
       logger.error('Discord schedule get error:', error);
       throw error;

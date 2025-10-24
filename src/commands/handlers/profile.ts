@@ -21,23 +21,34 @@ export class ProfileHandler implements CommandHandler {
         ]) as any;
         logger.info(`Profile API response for user ${targetUserId}:`, JSON.stringify(embedData, null, 2));
         
-        // Get schedule information if available (with timeout)
+        // Get schedule information if available (with separate timeouts)
         let scheduleInfo = null;
         let todaySchedule = null;
+        
+        // Try to get schedule info separately
         try {
-          const schedulePromise = Promise.race([
-            Promise.all([
-              apiClient.getSchedule(targetUserId),
-              apiClient.getTodaySchedule(targetUserId)
-            ]),
+          scheduleInfo = await Promise.race([
+            apiClient.getSchedule(targetUserId),
             new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Schedule API timeout')), 1500)
+              setTimeout(() => reject(new Error('Schedule API timeout')), 2000)
             )
           ]) as any;
-          
-          [scheduleInfo, todaySchedule] = await schedulePromise;
+          logger.info(`Schedule info retrieved for user ${targetUserId}:`, JSON.stringify(scheduleInfo, null, 2));
         } catch (error: any) {
-          logger.info(`No schedule found for user ${targetUserId} or timeout:`, error.message);
+          logger.info(`Schedule info not found for user ${targetUserId}:`, error.message);
+        }
+        
+        // Try to get today's schedule separately
+        try {
+          todaySchedule = await Promise.race([
+            apiClient.getTodaySchedule(targetUserId),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Today schedule API timeout')), 1500)
+            )
+          ]) as any;
+          logger.info(`Today schedule retrieved for user ${targetUserId}:`, JSON.stringify(todaySchedule, null, 2));
+        } catch (error: any) {
+          logger.info(`Today schedule not found for user ${targetUserId}:`, error.message);
         }
         
         const embed = new EmbedBuilder()
