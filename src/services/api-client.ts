@@ -195,7 +195,10 @@ export class ApiClient {
     photo_url?: string;
     date: string;
   }): Promise<DiscordEmbed> {
-    return this.apiCall<DiscordEmbed>('POST', '/discord/checkin', data);
+    logger.info(`API Call: POST /discord/checkin with data:`, JSON.stringify(data, null, 2));
+    const result = await this.apiCall<DiscordEmbed>('POST', '/discord/checkin', data);
+    logger.info(`Check-in API result:`, JSON.stringify(result, null, 2));
+    return result;
   }
 
   async getCheckInEmbed(data: {
