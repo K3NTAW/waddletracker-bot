@@ -5,9 +5,10 @@ import logger from '../../utils/logger';
 
 export class ProfileHandler implements CommandHandler {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    // Defer reply immediately to prevent timeout
+    await interaction.deferReply();
+    
     try {
-      await interaction.deferReply();
-
       const targetUserId = getTargetUserId(interaction);
       const isSelf = targetUserId === interaction.user.id;
 
@@ -141,7 +142,23 @@ export class ProfileHandler implements CommandHandler {
       }
 
     } catch (error) {
-      await handleApiError(interaction, error);
+      // Since we already deferred, use editReply instead of reply
+      try {
+        await handleApiError(interaction, error);
+      } catch (errorHandlingError) {
+        // If error handling fails, try to send a simple error message
+        try {
+          const embed = new EmbedBuilder()
+            .setColor(0xff0000)
+            .setTitle('❌ Error')
+            .setDescription('An unexpected error occurred. Please try again later.')
+            .setTimestamp();
+          
+          await interaction.editReply({ embeds: [embed] });
+        } catch (finalError) {
+          logger.error('Failed to send error message:', finalError);
+        }
+      }
     }
   }
 }
