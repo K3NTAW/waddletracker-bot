@@ -14,17 +14,6 @@ import { apiClient } from '../services/api-client';
 
 export class InteractionHandler {
   async handleInteraction(interaction: Interaction): Promise<void> {
-    // Defer immediately for slash commands to prevent timeout
-    if (interaction.isChatInputCommand()) {
-      try {
-        await interaction.deferReply({ flags: 64 }); // 64 = EPHEMERAL flag
-        logger.info(`Interaction deferred for command: ${interaction.commandName}`);
-      } catch (deferError) {
-        logger.error('Failed to defer interaction:', deferError);
-        return; // Can't continue without deferring
-      }
-    }
-
     try {
       if (interaction.isChatInputCommand()) {
         await this.handleSlashCommand(interaction);

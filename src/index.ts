@@ -52,6 +52,17 @@ app.listen(PORT, () => {
 
 // Handle interactions
 client.on(Events.InteractionCreate, async (interaction) => {
+  // Defer immediately for slash commands to prevent timeout
+  if (interaction.isChatInputCommand()) {
+    try {
+      await interaction.deferReply({ flags: 64 }); // 64 = EPHEMERAL flag
+      logger.info(`Interaction deferred immediately for command: ${interaction.commandName}`);
+    } catch (deferError) {
+      logger.error('Failed to defer interaction immediately:', deferError);
+      return; // Can't continue without deferring
+    }
+  }
+  
   await interactionHandler.handleInteraction(interaction);
 });
 
