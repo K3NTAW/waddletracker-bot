@@ -206,7 +206,7 @@ export class ApiClient {
   }
 
   async getProfileEmbed(discordId: string): Promise<DiscordEmbed> {
-    const endpoint = `/discord/profile-embed?user_id=${discordId}`;
+    const endpoint = `/discord/profile-embed?discord_id=${discordId}`;
     logger.info(`API Call: GET ${endpoint}`);
     return this.apiCall<DiscordEmbed>('GET', endpoint);
   }
