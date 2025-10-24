@@ -1,9 +1,9 @@
 import { SlashCommandBuilder, SlashCommandSubcommandBuilder, SlashCommandStringOption, SlashCommandUserOption, SlashCommandIntegerOption, SlashCommandBooleanOption, SlashCommandChannelOption } from 'discord.js';
 
-// Check-in command
+// Check-in command (smart - detects schedule)
 export const checkinCommand = new SlashCommandBuilder()
   .setName('checkin')
-  .setDescription('Log your gym check-in')
+  .setDescription('Smart check-in - detects if today is workout or rest day')
   .addStringOption((option: SlashCommandStringOption) =>
     option
       .setName('status')
@@ -11,14 +11,72 @@ export const checkinCommand = new SlashCommandBuilder()
       .setRequired(true)
       .addChoices(
         { name: 'Went to gym 💪', value: 'went' },
-        { name: 'Missed workout 😔', value: 'missed' }
+        { name: 'Missed workout 😔', value: 'missed' },
+        { name: 'Rest day 😴', value: 'rest' }
       )
+  )
+  .addStringOption((option: SlashCommandStringOption) =>
+    option
+      .setName('workout_type')
+      .setDescription('Type of workout (e.g., Upper Body, Cardio)')
+      .setRequired(false)
+  )
+  .addStringOption((option: SlashCommandStringOption) =>
+    option
+      .setName('notes')
+      .setDescription('Additional notes about your session')
+      .setRequired(false)
+      .setMaxLength(500)
   )
   .addStringOption((option: SlashCommandStringOption) =>
     option
       .setName('photo_url')
       .setDescription('URL of your gym photo (optional)')
       .setRequired(false)
+  );
+
+// Workout command (specific for workouts)
+export const workoutCommand = new SlashCommandBuilder()
+  .setName('workout')
+  .setDescription('Log a workout session')
+  .addStringOption((option: SlashCommandStringOption) =>
+    option
+      .setName('type')
+      .setDescription('Type of workout')
+      .setRequired(true)
+      .addChoices(
+        { name: 'Upper Body 💪', value: 'Upper Body' },
+        { name: 'Lower Body 🦵', value: 'Lower Body' },
+        { name: 'Cardio ❤️', value: 'Cardio' },
+        { name: 'Full Body 🔥', value: 'Full Body' },
+        { name: 'Yoga 🧘', value: 'Yoga' },
+        { name: 'Other', value: 'Other' }
+      )
+  )
+  .addStringOption((option: SlashCommandStringOption) =>
+    option
+      .setName('notes')
+      .setDescription('Workout notes (sets, reps, etc.)')
+      .setRequired(false)
+      .setMaxLength(500)
+  )
+  .addStringOption((option: SlashCommandStringOption) =>
+    option
+      .setName('photo_url')
+      .setDescription('URL of your gym photo (optional)')
+      .setRequired(false)
+  );
+
+// Rest day command
+export const restDayCommand = new SlashCommandBuilder()
+  .setName('rest-day')
+  .setDescription('Log a rest day for recovery')
+  .addStringOption((option: SlashCommandStringOption) =>
+    option
+      .setName('notes')
+      .setDescription('Rest day notes (optional)')
+      .setRequired(false)
+      .setMaxLength(500)
   );
 
 // Profile command
@@ -114,25 +172,54 @@ export const leaderboardCommand = new SlashCommandBuilder()
       )
   );
 
-// Schedule command
+// Schedule command (enhanced with flexible scheduling)
 export const scheduleCommand = new SlashCommandBuilder()
   .setName('schedule')
-  .setDescription('Manage your gym schedule')
+  .setDescription('Manage your gym schedule with flexible patterns')
   .addSubcommand((subcommand: SlashCommandSubcommandBuilder) =>
     subcommand
-      .setName('set')
-      .setDescription('Set your gym schedule')
+      .setName('rotation')
+      .setDescription('Create a rotation schedule (e.g., upper,lower,rest)')
       .addStringOption((option: SlashCommandStringOption) =>
         option
-          .setName('days')
-          .setDescription('Days of the week (comma-separated: Monday,Wednesday,Friday)')
+          .setName('pattern')
+          .setDescription('Rotation pattern (e.g., upper,lower,rest,upper,lower,rest,rest)')
           .setRequired(true)
       )
       .addStringOption((option: SlashCommandStringOption) =>
         option
           .setName('time')
-          .setDescription('Time in 24-hour format (e.g., 18:00)')
+          .setDescription('Reminder time in 24-hour format (e.g., 09:00)')
+          .setRequired(false)
+      )
+      .addStringOption((option: SlashCommandStringOption) =>
+        option
+          .setName('timezone')
+          .setDescription('Your timezone (e.g., UTC, America/New_York)')
+          .setRequired(false)
+      )
+  )
+  .addSubcommand((subcommand: SlashCommandSubcommandBuilder) =>
+    subcommand
+      .setName('weekly')
+      .setDescription('Create a weekly schedule')
+      .addStringOption((option: SlashCommandStringOption) =>
+        option
+          .setName('days')
+          .setDescription('Workout days (comma-separated: Monday,Wednesday,Friday)')
           .setRequired(true)
+      )
+      .addStringOption((option: SlashCommandStringOption) =>
+        option
+          .setName('time')
+          .setDescription('Reminder time in 24-hour format (e.g., 18:00)')
+          .setRequired(false)
+      )
+      .addStringOption((option: SlashCommandStringOption) =>
+        option
+          .setName('timezone')
+          .setDescription('Your timezone (e.g., UTC, America/New_York)')
+          .setRequired(false)
       )
   )
   .addSubcommand((subcommand: SlashCommandSubcommandBuilder) =>
@@ -144,6 +231,11 @@ export const scheduleCommand = new SlashCommandBuilder()
     subcommand
       .setName('delete')
       .setDescription('Delete your schedule')
+  )
+  .addSubcommand((subcommand: SlashCommandSubcommandBuilder) =>
+    subcommand
+      .setName('today')
+      .setDescription('Check what type of day today is (workout/rest)')
   );
 
 // Gallery command
@@ -254,6 +346,8 @@ export const helpCommand = new SlashCommandBuilder()
       .setRequired(false)
       .addChoices(
         { name: 'checkin', value: 'checkin' },
+        { name: 'workout', value: 'workout' },
+        { name: 'rest-day', value: 'rest-day' },
         { name: 'profile', value: 'profile' },
         { name: 'cheer', value: 'cheer' },
         { name: 'streak', value: 'streak' },
@@ -268,6 +362,8 @@ export const helpCommand = new SlashCommandBuilder()
 // Export all commands
 export const commands = [
   checkinCommand,
+  workoutCommand,
+  restDayCommand,
   profileCommand,
   cheerCommand,
   streakCommand,

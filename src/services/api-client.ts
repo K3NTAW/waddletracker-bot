@@ -191,7 +191,9 @@ export class ApiClient {
     discord_id: string;
     username: string;
     avatar_url?: string;
-    status: 'went' | 'missed';
+    status: 'went' | 'missed' | 'rest';
+    workout_type?: string;
+    notes?: string;
     photo_url?: string;
     date: string;
   }): Promise<DiscordEmbed> {
@@ -241,6 +243,51 @@ export class ApiClient {
       user_id: response.user.id,
       message: response.message
     };
+  }
+
+  // Rest day and schedule endpoints
+  async logRestDay(data: {
+    discord_id: string;
+    username: string;
+    avatar_url?: string;
+    notes?: string;
+    date?: string;
+  }): Promise<DiscordEmbed> {
+    logger.info(`API Call: POST /discord/rest-day with data:`, JSON.stringify(data, null, 2));
+    const response = await this.apiCall<{ embed: DiscordEmbed }>('POST', '/discord/rest-day', data);
+    logger.info(`Rest day API result:`, JSON.stringify(response, null, 2));
+    return response.embed;
+  }
+
+  async getTodaySchedule(discordId: string): Promise<{ today_scheduled_type: 'workout' | 'rest' | null; message?: string }> {
+    const endpoint = `/schedules/today?discord_id=${discordId}`;
+    logger.info(`API Call: GET ${endpoint}`);
+    const result = await this.apiCall<{ today_scheduled_type: 'workout' | 'rest' | null; message?: string }>('GET', endpoint);
+    logger.info(`Today schedule API result:`, JSON.stringify(result, null, 2));
+    return result;
+  }
+
+  async createFlexibleSchedule(data: {
+    discord_id: string;
+    schedule_type: 'rotating' | 'weekly' | 'custom';
+    rotation_pattern?: string;
+    workout_days?: string[];
+    timezone?: string;
+    reminder_time?: string;
+    rest_days_allowed?: boolean;
+  }): Promise<{ schedule: any; today_scheduled_type: 'workout' | 'rest' | null; message: string }> {
+    logger.info(`API Call: POST /schedules/flexible with data:`, JSON.stringify(data, null, 2));
+    const result = await this.apiCall<{ schedule: any; today_scheduled_type: 'workout' | 'rest' | null; message: string }>('POST', '/schedules/flexible', data);
+    logger.info(`Flexible schedule API result:`, JSON.stringify(result, null, 2));
+    return result;
+  }
+
+  async getSchedule(discordId: string): Promise<any> {
+    const endpoint = `/schedules?discord_id=${discordId}`;
+    logger.info(`API Call: GET ${endpoint}`);
+    const result = await this.apiCall<any>('GET', endpoint);
+    logger.info(`Schedule API result:`, JSON.stringify(result, null, 2));
+    return result;
   }
 
   async getCheerEmbed(data: {

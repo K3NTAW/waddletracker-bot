@@ -1,6 +1,8 @@
 import { Collection, SlashCommandBuilder } from 'discord.js';
 import { CommandHandler } from './handlers';
 import { CheckinHandler } from './handlers/checkin';
+import { WorkoutHandler } from './handlers/workout';
+import { RestDayHandler } from './handlers/rest-day';
 import { ProfileHandler } from './handlers/profile';
 import { CheerHandler } from './handlers/cheer';
 import { StreakHandler } from './handlers/streak';
@@ -17,6 +19,8 @@ export const commandHandlers = new Collection<string, CommandHandler>();
 
 // Register command handlers
 commandHandlers.set('checkin', new CheckinHandler());
+commandHandlers.set('workout', new WorkoutHandler());
+commandHandlers.set('rest-day', new RestDayHandler());
 commandHandlers.set('profile', new ProfileHandler());
 commandHandlers.set('cheer', new CheerHandler());
 commandHandlers.set('streak', new StreakHandler());
