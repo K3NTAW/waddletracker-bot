@@ -196,9 +196,9 @@ export class ApiClient {
     date: string;
   }): Promise<DiscordEmbed> {
     logger.info(`API Call: POST /discord/checkin with data:`, JSON.stringify(data, null, 2));
-    const result = await this.apiCall<DiscordEmbed>('POST', '/discord/checkin', data);
-    logger.info(`Check-in API result:`, JSON.stringify(result, null, 2));
-    return result;
+    const response = await this.apiCall<{ embed: DiscordEmbed }>('POST', '/discord/checkin', data);
+    logger.info(`Check-in API result:`, JSON.stringify(response, null, 2));
+    return response.embed;
   }
 
   async getCheckInEmbed(data: {
@@ -211,9 +211,9 @@ export class ApiClient {
   async getProfileEmbed(discordId: string): Promise<DiscordEmbed> {
     const endpoint = `/discord/profile-embed?discord_id=${discordId}`;
     logger.info(`API Call: GET ${endpoint}`);
-    const result = await this.apiCall<DiscordEmbed>('GET', endpoint);
-    logger.info(`Profile embed API result:`, JSON.stringify(result, null, 2));
-    return result;
+    const response = await this.apiCall<{ embed: DiscordEmbed }>('GET', endpoint);
+    logger.info(`Profile embed API result:`, JSON.stringify(response, null, 2));
+    return response.embed;
   }
 
   // Discord registration endpoints
@@ -222,7 +222,8 @@ export class ApiClient {
     username: string;
     avatar_url?: string;
   }): Promise<DiscordEmbed> {
-    return this.apiCall<DiscordEmbed>('POST', '/discord/register-embed', data);
+    const response = await this.apiCall<{ embed: DiscordEmbed }>('POST', '/discord/register-embed', data);
+    return response.embed;
   }
 
   async registerUser(data: {
