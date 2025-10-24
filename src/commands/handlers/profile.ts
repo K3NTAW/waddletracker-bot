@@ -21,7 +21,7 @@ export class ProfileHandler implements CommandHandler {
           .setColor(embedData.color || 0x0099ff)
           .setTitle(embedData.title || `🏋️ ${isSelf ? 'Your' : 'User'} Profile`)
           .setDescription(embedData.description || `**User:** <@${targetUserId}>`)
-          .setThumbnail(interaction.user.displayAvatarURL())
+          .setThumbnail(interaction.client.users.cache.get(targetUserId)?.displayAvatarURL() || interaction.user.displayAvatarURL())
           .setTimestamp();
 
         // Add fields if they exist
@@ -39,8 +39,8 @@ export class ProfileHandler implements CommandHandler {
       } catch (apiError: any) {
         logger.error('Profile API error:', apiError);
         
-        // Check if it's a "User ID is required" error (user not found)
-        if (apiError.statusCode === 400 && (apiError.message?.includes('User ID is required') || apiError.message?.includes('User not found'))) {
+        // Check if it's a user not found error (404 or 400 with specific messages)
+        if (apiError.statusCode === 404 || (apiError.statusCode === 400 && (apiError.message?.includes('User ID is required') || apiError.message?.includes('User not found')))) {
           // If user doesn't exist, show registration embed with button
           try {
             const registerEmbedData = await apiClient.getRegisterEmbed({
@@ -49,12 +49,12 @@ export class ProfileHandler implements CommandHandler {
               avatar_url: interaction.user.displayAvatarURL()
             });
 
-            const embed = new EmbedBuilder()
-              .setColor(registerEmbedData.color || 0xffa500)
-              .setTitle(registerEmbedData.title || '👤 Registration Required')
-              .setDescription(registerEmbedData.description || `**User:** <@${targetUserId}>\n\nThis user needs to register with WaddleTracker to use the bot features.`)
-              .setThumbnail(interaction.user.displayAvatarURL())
-              .setTimestamp();
+          const embed = new EmbedBuilder()
+            .setColor(registerEmbedData.color || 0xffa500)
+            .setTitle(registerEmbedData.title || '👤 Registration Required')
+            .setDescription(registerEmbedData.description || `**User:** <@${targetUserId}>\n\nThis user needs to register with WaddleTracker to use the bot features.`)
+            .setThumbnail(interaction.client.users.cache.get(targetUserId)?.displayAvatarURL() || interaction.user.displayAvatarURL())
+            .setTimestamp();
 
             // Add fields if they exist
             if (registerEmbedData.fields) {
@@ -88,21 +88,21 @@ export class ProfileHandler implements CommandHandler {
 
           } catch (registerError) {
             // Fallback if registration embed fails
-            const embed = new EmbedBuilder()
-              .setColor(0xffa500)
-              .setTitle('👤 Registration Required')
-              .setDescription(
-                `**User:** <@${targetUserId}>\n\n` +
-                `This user needs to register with WaddleTracker to use the bot features.\n` +
-                `Click the "Register Now!" button below to get started!`
-              )
-              .addFields({
-                name: '🔗 What You\'ll Get',
-                value: '• Track your gym sessions\n• Build streaks and achievements\n• Get motivation from the community\n• View your progress analytics',
-                inline: false
-              })
-              .setThumbnail(interaction.user.displayAvatarURL())
-              .setTimestamp();
+          const embed = new EmbedBuilder()
+            .setColor(0xffa500)
+            .setTitle('👤 Registration Required')
+            .setDescription(
+              `**User:** <@${targetUserId}>\n\n` +
+              `This user needs to register with WaddleTracker to use the bot features.\n` +
+              `Click the "Register Now!" button below to get started!`
+            )
+            .addFields({
+              name: '🔗 What You\'ll Get',
+              value: '• Track your gym sessions\n• Build streaks and achievements\n• Get motivation from the community\n• View your progress analytics',
+              inline: false
+            })
+            .setThumbnail(interaction.client.users.cache.get(targetUserId)?.displayAvatarURL() || interaction.user.displayAvatarURL())
+            .setTimestamp();
 
             // Add registration buttons
             const row = new ActionRowBuilder<ButtonBuilder>()
