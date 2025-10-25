@@ -11,7 +11,6 @@ import {
   Cheer,
   LeaderboardData,
   DiscordEmbed,
-  Notification,
   AnalyticsData,
   ApiError
 } from '../types';
@@ -472,50 +471,6 @@ export class ApiClient {
     }>('GET', `/gallery/${userId}?${params.toString()}`);
   }
 
-  // Notification endpoints
-  async getUserNotifications(userId: string, options: {
-    page?: number;
-    limit?: number;
-    type?: 'all' | 'cheer' | 'reminder' | 'achievement' | 'system';
-    unread_only?: boolean;
-  } = {}): Promise<{
-    notifications: Notification[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      pages: number;
-    };
-  }> {
-    const params = new URLSearchParams();
-    Object.entries(options).forEach(([key, value]) => {
-      if (value !== undefined) {
-        params.append(key, value.toString());
-      }
-    });
-    
-    return this.apiCall<{
-      notifications: Notification[];
-      pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        pages: number;
-      };
-    }>('GET', `/notifications/${userId}?${params.toString()}`);
-  }
-
-  async markNotificationsAsRead(userId: string, notificationIds: string[], token: string): Promise<void> {
-    return this.apiCall<void>('POST', `/notifications/${userId}`, { notification_ids: notificationIds }, {
-      'Authorization': `Bearer ${token}`
-    });
-  }
-
-  async markAllNotificationsAsRead(userId: string, token: string): Promise<void> {
-    return this.apiCall<void>('PUT', `/notifications/${userId}`, undefined, {
-      'Authorization': `Bearer ${token}`
-    });
-  }
 
   // Analytics endpoints
   async getUserAnalytics(userId: string, period: number = 30): Promise<AnalyticsData> {

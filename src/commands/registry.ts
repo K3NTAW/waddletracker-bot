@@ -9,7 +9,6 @@ import { StreakHandler } from './handlers/streak';
 import { LeaderboardHandler } from './handlers/leaderboard';
 import { ScheduleHandler } from './handlers/schedule';
 import { GalleryHandler } from './handlers/gallery';
-import { NotificationsHandler } from './handlers/notifications';
 import { AnalyticsHandler } from './handlers/analytics';
 import { HelpHandler } from './handlers/help';
 import { commands } from './slash-commands';
@@ -27,7 +26,6 @@ commandHandlers.set('streak', new StreakHandler());
 commandHandlers.set('leaderboard', new LeaderboardHandler());
 commandHandlers.set('schedule', new ScheduleHandler());
 commandHandlers.set('gallery', new GalleryHandler());
-commandHandlers.set('notifications', new NotificationsHandler());
 commandHandlers.set('analytics', new AnalyticsHandler());
 commandHandlers.set('help', new HelpHandler());
 

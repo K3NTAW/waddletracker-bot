@@ -275,52 +275,6 @@ export const galleryCommand = new SlashCommandBuilder()
       .setMaxValue(20)
   );
 
-// Notifications command
-export const notificationsCommand = new SlashCommandBuilder()
-  .setName('notifications')
-  .setDescription('Manage your notifications')
-  .addSubcommand((subcommand: SlashCommandSubcommandBuilder) =>
-    subcommand
-      .setName('view')
-      .setDescription('View your notifications')
-      .addStringOption((option: SlashCommandStringOption) =>
-        option
-          .setName('type')
-          .setDescription('Filter by notification type')
-          .setRequired(false)
-          .addChoices(
-            { name: 'All Notifications', value: 'all' },
-            { name: 'Cheers', value: 'cheer' },
-            { name: 'Reminders', value: 'reminder' },
-            { name: 'Achievements', value: 'achievement' },
-            { name: 'System', value: 'system' }
-          )
-      )
-      .addBooleanOption((option: SlashCommandBooleanOption) =>
-        option
-          .setName('unread_only')
-          .setDescription('Show only unread notifications')
-          .setRequired(false)
-      )
-      .addIntegerOption((option: SlashCommandIntegerOption) =>
-        option
-          .setName('page')
-          .setDescription('Page number (default: 1)')
-          .setRequired(false)
-          .setMinValue(1)
-      )
-  )
-  .addSubcommand((subcommand: SlashCommandSubcommandBuilder) =>
-    subcommand
-      .setName('mark_read')
-      .setDescription('Mark notifications as read')
-      .addStringOption((option: SlashCommandStringOption) =>
-        option
-          .setName('notification_ids')
-          .setDescription('Comma-separated notification IDs (leave empty for all)')
-          .setRequired(false)
-      )
-  );
 
 // Analytics command
 export const analyticsCommand = new SlashCommandBuilder()
@@ -354,7 +308,6 @@ export const helpCommand = new SlashCommandBuilder()
         { name: 'leaderboard', value: 'leaderboard' },
         { name: 'schedule', value: 'schedule' },
         { name: 'gallery', value: 'gallery' },
-        { name: 'notifications', value: 'notifications' },
         { name: 'analytics', value: 'analytics' }
       )
   );
@@ -370,7 +323,6 @@ export const commands = [
   leaderboardCommand,
   scheduleCommand,
   galleryCommand,
-  notificationsCommand,
   analyticsCommand,
   helpCommand
 ];

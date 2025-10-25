@@ -112,16 +112,6 @@ export interface DiscordEmbedImage {
   url: string;
 }
 
-// Notification Types
-export interface Notification {
-  id: string;
-  user_id: string;
-  type: 'cheer' | 'reminder' | 'achievement' | 'system';
-  title: string;
-  message: string;
-  read: boolean;
-  created_at: string;
-}
 
 // Analytics Types
 export interface AnalyticsData {

@@ -5,7 +5,6 @@ import logger from './utils/logger';
 import { InteractionHandler } from './events/interaction-handler';
 import { handleReady } from './events/ready';
 import { handleError } from './events/error';
-import { SchedulerService } from './services/scheduler';
 
 // Create Discord client
 const client = new Client({
@@ -19,7 +18,6 @@ const client = new Client({
 
 // Initialize services
 const interactionHandler = new InteractionHandler();
-const scheduler = new SchedulerService(client);
 
 // Set up event handlers
 handleReady(client);
@@ -84,14 +82,12 @@ process.on('uncaughtException', (error) => {
 // Graceful shutdown
 process.on('SIGINT', () => {
   logger.info('Received SIGINT, shutting down gracefully...');
-  scheduler.stop();
   client.destroy();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   logger.info('Received SIGTERM, shutting down gracefully...');
-  scheduler.stop();
   client.destroy();
   process.exit(0);
 });
@@ -103,8 +99,6 @@ logger.info('API base URL:', config.apiBaseUrl);
 
 client.login(config.discordToken).then(() => {
   logger.info('Discord login successful!');
-  // Start scheduler after successful login
-  scheduler.start();
 }).catch((error) => {
   logger.error('Failed to login to Discord:', error);
   logger.error('Error details:', {

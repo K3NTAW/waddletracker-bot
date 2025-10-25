@@ -250,9 +250,6 @@ export class InteractionHandler {
         const description = originalEmbed.description || '';
         const userMatch = description.match(/<@(\d+)>/);
         targetUserId = userMatch ? userMatch[1] : interaction.user.id;
-      } else if (title.includes('Notifications')) {
-        commandType = 'notifications';
-        targetUserId = interaction.user.id;
       } else if (title.includes('Leaderboard')) {
         commandType = 'leaderboard';
       }
@@ -260,8 +257,6 @@ export class InteractionHandler {
       // Handle pagination based on command type
       if (commandType === 'gallery') {
         await this.handleGalleryPagination(interaction, targetUserId, page);
-      } else if (commandType === 'notifications') {
-        await this.handleNotificationsPagination(interaction, targetUserId, page);
       } else if (commandType === 'leaderboard') {
         await this.handleLeaderboardPagination(interaction, page);
       } else {
@@ -615,62 +610,6 @@ export class InteractionHandler {
     }
   }
 
-  private async handleNotificationsPagination(interaction: ButtonInteraction, userId: string, page: number): Promise<void> {
-    try {
-      // Get notifications data for the requested page
-      const notificationsData = await apiClient.getUserNotifications(userId, { page, limit: 10, type: 'all', unread_only: false });
-      
-      const embed = new EmbedBuilder()
-        .setColor(0x0099ff)
-        .setTitle('🔔 Your Notifications')
-        .setDescription(`**Total:** ${notificationsData.pagination.total} notifications`)
-        .setTimestamp();
-
-      if (notificationsData.notifications.length === 0) {
-        embed.addFields({
-          name: '📭 No Notifications',
-          value: 'No notifications found.',
-          inline: false
-        });
-      } else {
-        const notificationList = notificationsData.notifications.map((notification, index) => {
-          const notificationNumber = (notificationsData.pagination.page - 1) * notificationsData.pagination.limit + index + 1;
-          const readStatus = notification.read ? '✅' : '🔴';
-          const typeEmoji = {
-            'cheer': '🎉',
-            'achievement': '🏆',
-            'reminder': '⏰',
-            'system': '⚙️'
-          }[notification.type] || '📢';
-          
-          const date = new Date(notification.created_at).toLocaleDateString();
-          return `**${notificationNumber}.** ${readStatus} ${typeEmoji} ${notification.title}\n   ${notification.message}\n   *${date}*`;
-        }).join('\n\n');
-
-        embed.addFields({
-          name: `📋 Notifications (${notificationsData.pagination.page} of ${notificationsData.pagination.pages})`,
-          value: notificationList,
-          inline: false
-        });
-      }
-
-      // Add pagination buttons if there are multiple pages
-      const components = notificationsData.pagination.pages > 1 ? this.createPaginationButtons(page, notificationsData.pagination.pages) : [];
-
-      await interaction.editReply({
-        embeds: [embed],
-        components
-      });
-
-    } catch (error) {
-      logger.error('Notifications pagination error:', error);
-      const embed = createErrorEmbed(
-        'Notifications Error',
-        'Unable to load notifications page. Please try again.'
-      );
-      await interaction.editReply({ embeds: [embed], components: [] });
-    }
-  }
 
   private async handleLeaderboardPagination(interaction: ButtonInteraction, page: number): Promise<void> {
     try {
